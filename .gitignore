@@ -1,0 +1,44 @@
+# --- personal state, never in the repo -------------------------------------
+# flowQt writes this on exit: your input folder, your view cycle, your slots.
+# It is created from DEFAULT_CYCLE on first start, so nothing is missing
+# without it.
+flowQt_settings.json
+
+# Recipes belong next to the material, not here.
+cineflow.json
+*_cineflow.json
+cineflow_folder.json
+cineflow_run.json
+
+# --- output ----------------------------------------------------------------
+_clips/
+out/
+Out/
+*.mp4
+*.mov
+*.mkv
+
+# --- material --------------------------------------------------------------
+*.tif
+*.tiff
+*.dng
+*.png
+!images/*.png
+
+# --- python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+cineflow-env/
+
+# --- editors and systems ---------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
