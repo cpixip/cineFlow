@@ -18,6 +18,8 @@ what skin, foliage and brickwork look like, and paints that over the
 places where grain used to be. The result is impressively sharp, and it
 shows things that were never on the film.
 
+![flowQt with real data](images/19-flowQtInUse.png)
+
 cineFlow takes the other route. A detail in a film almost never lives
 in a single frame — the camera exposed the same corner of the house,
 the same face, the same treetop two, five, twenty times. The grain fell
