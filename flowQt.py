@@ -2391,8 +2391,7 @@ class Main(QMainWindow):
             "Left: write the current recipe to the scene folder\n"
             "      (<scene>/cineflow.json) -- this is what cineFlow reads\n"
             "      on its own.\n"
-            "Right: save as \u2026 -- anywhere you like. cineFlow does not\n"
-            "      pick those up automatically; pass them with --config.")
+            "Right: save as \u2026 -- anywhere you like")
         self.b_export.leftClicked.connect(self._export)
         self.b_export.rightClicked.connect(self._export_as)
         b_export = self.b_export
@@ -3333,27 +3332,27 @@ class Main(QMainWindow):
             self._tabsTrust.setTabToolTip(
                 self._tab_dustA,
                 "Outlier curve of the group-consensus fusion.\n"
-                + ("Aktiv." if is_dustA else
-                   f"Inaktiv -- Modus ist '{mode_now}'."))
+                + ("Active." if is_dustA else
+                   f"Inactive -- mode is '{mode_now}'."))
             self._tabsTrust.tabBar().setTabTextColor(
                 self._tab_dustB,
                 QColor() if is_dustB else QColor("#7a7f87"))
             self._tabsTrust.setTabToolTip(
                 self._tab_dustB,
                 "Residual curve of the committee without the input frame.\n"
-                + ("Aktiv." if is_dustB else
-                   f"Inaktiv -- Modus ist '{mode_now}'."))
+                + ("Active." if is_dustB else
+                   f"Inactive -- mode is '{mode_now}'."))
             self._tabsTrust.tabBar().setTabTextColor(
                 self._tab_pho,
                 QColor("#7a7f87") if is_dust else QColor())
             self._tabsTrust.setTabToolTip(
                 self._tab_pho,
                 "Appearance test against the input frame.\n"
-                + ("Aktiv." if not is_dust else
-                   f"Inaktiv -- im Modus '{mode_now}' uebernimmt der\n"
-                   f"Gruppenkonsens diese Aufgabe (ctg = gt * pgt).\n"
-                   f"Die Karte 'Trust photo' reagiert weiter, das\n"
-                   f"ERGEBNIS nicht."))
+                + ("Active." if not is_dust else
+                   f"Inactive -- in mode '{mode_now}' the group\n"
+                   f"consensus takes over this job (ctg = gt * pgt).\n"
+                   f"The 'Trust photo' map keeps responding; the\n"
+                   f"RESULT does not."))
 
     def _goto(self, i):
         if not self.files:
@@ -3728,9 +3727,7 @@ class Main(QMainWindow):
             return False
         ok = self._write_recipe(cfg, path, mark_saved=False)
         if ok:
-            self.statusBar().showMessage(
-                f"written: {path} \u2014 cineFlow needs --config for this "
-                f"one", 9000)
+            self.statusBar().showMessage(f"written: {path}", 6000)
         return ok
 
     def _write_recipe(self, cfg, path, mark_saved=True):
@@ -3816,16 +3813,16 @@ def _apply_dark(app):
                         border: 1px solid #3a3a3e; }
         QListView::item:selected, QTreeView::item:selected {
                         background: #4e84be; }
-        /* Aufklappliste einer Combo -- der GEWAEHLTE Eintrag muss sich
-           abheben.
-           Ohne diese Regeln malt Qt ihn in einem Grau, das der uebrigen
-           Oberflaeche gleicht, waehrend die nicht gewaehlten Eintraege auf
-           dem dunkleren Base stehen: der Kontrast liest sich dann
-           andersherum, der schwarz hinterlegte Eintrag wirkt wie der
-           markierte (rdh). Bei zwei Eintraegen -- Modus best/dust -- ist das
-           besonders irrefuehrend.
-           Es MUSS ueber das Stylesheet gehen: mit gesetztem App-Stylesheet
-           ist QStyleSheetStyle aktiv, und der ignoriert die Palette. */
+        /* Drop-down list of a combo -- the SELECTED entry must stand
+           out.
+           Without these rules Qt paints it in a grey that matches the
+           rest of the interface, while the unselected entries sit on the
+           darker base: the contrast then reads the wrong way round, and
+           the dark-backed entry looks like the highlighted one.
+           With only two entries -- mode best/dust -- that is especially
+           misleading.
+           It MUST go through the stylesheet: with an app stylesheet set,
+           QStyleSheetStyle is active, and that ignores the palette. */
         QComboBox QAbstractItemView {
                         background: #161618;
                         border: 1px solid #3a3a3e;
@@ -3859,21 +3856,21 @@ def _apply_dark(app):
                         border-radius: 3px; padding: 4px 10px; }
         QPushButton:hover   { background: #3d3f47; }
         QPushButton:pressed { background: #2a2b30; }
-        /* ACHTUNG -- QComboBox steht hier BEWUSST NICHT mehr drin.
-           "QComboBox { background: ... }" faerbt naemlich nicht nur das
-           zugeklappte Feld, sondern vererbt sich in die AUFKLAPPLISTE und
-           uebermalt dort den gewaehlten Eintrag. Der bekam damit genau das
-           Grau der uebrigen Oberflaeche, waehrend die nicht gewaehlten
-           Eintraege dunkler blieben -- der Kontrast las sich andersherum
-           (rdh). Keine noch so spezifische ::item-Regel kommt dagegen an;
-           nachgemessen an der gerenderten Liste.
-           Das zugeklappte Feld bekommt seinen Hintergrund deshalb ueber die
-           PALETTE (QPalette.Button, s. oben), die sich nicht vererbt. */
-        /* padding SENKRECHT knapp (1px): die Zeilenhoehe der Regler haengt
-           allein an diesem Feld -- Schrifthoehe + Innenabstand + Rahmen. Bei
-           drei bis vier Reglern je Reiter schlaegt jedes Pixel dreifach durch
-           (rdh). Waagerecht bleibt es bei 4, sonst kleben die Ziffern am
-           Rahmen. */
+        /* NOTE -- QComboBox is DELIBERATELY absent here.
+           "QComboBox { background: ... }" colours not only the collapsed
+           field but is inherited by the DROP-DOWN LIST, where it paints
+           over the selected entry. That entry then got exactly the grey
+           of the rest of the interface, while the unselected entries
+           stayed darker -- the contrast read the wrong way round.
+           No ::item rule, however specific, wins against that; verified
+           on the rendered list.
+           The collapsed field therefore gets its background through the
+           PALETTE (QPalette.Button, see above), which is not inherited. */
+        /* VERTICAL padding kept tight (1px): the line height of the
+           controls hangs on this field alone -- font height + padding +
+           border. With three to four controls per tab, every pixel counts
+           three times over. HORIZONTAL stays at 4, otherwise the
+           digits stick to the frame. */
         QSpinBox, QDoubleSpinBox {
                         background: #212226; border: 1px solid #3a3a3e;
                         border-radius: 3px; padding: 1px 4px; }

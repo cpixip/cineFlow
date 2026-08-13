@@ -1,32 +1,36 @@
-# cineFlow — degraining small-gauge film scans
+# cineFlow — Degraining and Recovery
 
-Grain removal for scanned Super 8, Double 8 and 16 mm film. It collects
-detail across neighbouring frames rather than reconstructing it, so it
-cannot show you anything that was not on the film.
+In the old days of analog media, major efforts were made to reduce the 
+intrinsic film grain of the medium. Film grain covers image detail, 
+especially in darker areas of a frame.
 
-The same machinery works on noisy video — in fact more easily, since
-the higher frame rate provides more usable samples per frame. Film is
-simply the harder case it was built for.
+This software takes a fresh approach to removing film grain digitally,
+with the explicit goal of recovering as much of the original image
+detail as the material allows. The software was carefully designed
+not to "invent" spurious image detail.
+
+The same machinery should also work on noisy video — more easily,
+even, since the higher frame rate provides more usable samples per
+frame. Film is the harder case it was built for.
 
 ## What it does
 
-Old small-gauge film is grainy, and in the darker parts of a frame the
-grain is often stronger than the subject behind it.
-
-Some programs solve this by rebuilding the picture: a model has learned
-what skin, foliage and brickwork look like, and paints that over the
-places where grain used to be. The result is impressively sharp, and it
-shows things that were never on the film.
+cineFlow reads raw scanner output — or any other frame sequence — and
+examines each frame together with its neighbours in a sliding window.
+Within that window it separates what is grain from what is genuine
+image content, and writes out the cleaned result.
 
 ![flowQt with real data](images/19-flowQtInUse.png)
 
-cineFlow takes the other route. A detail in a film almost never lives
-in a single frame — the camera exposed the same corner of the house,
-the same face, the same treetop two, five, twenty times. The grain fell
-differently on every exposure; the corner of the house did not. Follow
-a detail reliably across several frames, combine its signature from
-several samplings, and you end up with something that *was* in the
-film but was never cleanly visible in any one frame.
+A detail in a film almost never lives in a single frame — the camera
+exposed the same corner of the house, the same face, the same treetop
+two, five, twenty times. The grain fell differently on every exposure;
+the corner of the house did not.
+
+Follow a detail reliably across several frames, combine its signature
+from several samplings, and you end up with something that *was* in
+the film but was never cleanly visible in any one frame. The world in
+front of the camera was stable; only the grain was not.
 
 Every neighbouring frame is checked before it is used: is the motion
 consistent, does the pixel still look like it belongs, does it disagree
@@ -35,19 +39,16 @@ is discarded and the original frame stands. An area the software is
 unsure about stays as grainy as it was. That is sometimes
 unsatisfying — it is always honest.
 
-## Who it is for
-
-People who scan their own film and care whether what they end up with
-is what was actually there. It assumes you can run a Python script and
-are willing to look closely at your material; it does not assume you
-know what optical flow is.
-
 ## The two programs
+
+Restoration alternates between two very different activities: working
+out the right settings for a scene, and applying them to a few thousand
+frames. These are kept apart.
 
 | | |
 |---|---|
-| **flowQt** | interactive front end. One frame at a time, sliders, a set of diagnostic views. This is where you work out the settings for a scene and save them as a recipe. |
-| **cineFlow** | batch processor. No window, no sliders. Point it at a folder of scenes and it applies the recipes across all of them. |
+| **flowQt.py** | interactive front end. One frame at a time, sliders, a set of diagnostic views. This is where you work out the settings for a scene and save them as a recipe. |
+| **cineFlow.py** | batch processor. No window, no sliders. Point it at a folder of scenes and it applies the recipes across all of them. |
 
 Both use the same computation, so what you tune in flowQt is what the
 batch produces.
@@ -56,39 +57,28 @@ batch produces.
 
 - **[INSTALL.md](INSTALL.md)** — installation, from a machine with no
   Python on it to a first batch run. Tested end to end on Linux Mint
-  and Windows.
-- **[MANUAL.md](MANUAL.md)** — the manual. Chapter 2 gets you a
-  degrained clip in five minutes without understanding anything;
-  everything after that is about doing it well.
+  and on Windows, both natively and under WSL2.
+- **[MANUAL.md](MANUAL.md)** — the manual (first version, gaps marked).
+  Chapter 2 gets you a degrained clip in five minutes without
+  understanding anything; everything after that is about doing it well.
 
-Short version: Python 3.11 or 3.12, then
-
-```
-pip install numpy opencv-python tifffile PyQt5
-python flowQt.py
-```
-
-That runs everything, using the DIS optical-flow estimator. A CUDA GPU
-plus PyTorch additionally enables RAFT, which is usually — but not
-always — the better estimator. See INSTALL.md section 5.
-
-Without a GPU, expect around 0.7 frames per second at 1800×1350: slow,
-but fast enough to find out whether the software does anything for your
-material.
+You need Python 3.11 or 3.12 and four packages; INSTALL.md has the
+details. Everything runs on the CPU; a CUDA GPU is optional and makes
+it a great deal faster.
 
 ## Status
 
-Version 2.0. Working software that one person uses on his own film,
-published in the hope that it is useful to others.
+This is version 2.0 of the software: working software that one person
+uses on his own film, published in the hope that it is useful to
+others.
 
-The manual is a first version and has gaps, all of them marked. Some
-parts of the program — the dust removal modes in particular — work but
-have had far less attention than the degraining itself.
+Some parts of the program — the dust removal modes in particular —
+work but have had far less attention than the degraining itself.
 
-**No support is promised.** Bug reports are welcome and will be read;
-patches more so. Questions of the form "it does not run on my machine"
-are best asked with the output of the startup banner attached, which
-says what the program found and what it did not.
+**No support is promised.** Bug reports are welcome and will be read.
+Questions of the form "it does not run on my machine" are best asked
+with the console output of the failed run attached — the banner the
+program prints on startup says what it found and what it did not.
 
 ## Licence
 

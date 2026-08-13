@@ -89,4 +89,4 @@ RUNTIME_PARAMS = tuple(k for k in DEFAULT_CONFIG if k not in SCENE_PARAMS)
 
 _missing = [k for k in SCENE_PARAMS if k not in DEFAULT_CONFIG]
 if _missing:
-    raise KeyError(f"SCENE_PARAMS nennt unbekannte Schluessel: {_missing}")
+    raise KeyError(f"SCENE_PARAMS names unknown keys: {_missing}")

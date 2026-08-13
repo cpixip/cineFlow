@@ -90,7 +90,7 @@ def make_cfg(**overrides):
     unknown = [k for k in overrides
                if k not in cfg and k not in _VIEW_ONLY_KEYS]
     if unknown:
-        raise KeyError(f"unbekannte Parameter: {unknown}")
+        raise KeyError(f"unknown parameters: {unknown}")
     cfg.update(overrides)
     cfg.setdefault("_neighbor_offset", 1)
     return cfg

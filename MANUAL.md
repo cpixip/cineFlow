@@ -10,78 +10,76 @@
     - [2.1.C Switch to the Output view](#21c-switch-to-the-output-view)
     - [2.1.D Writing out the degrained result](#21d-writing-out-the-degrained-result)
   - [2.2 One slider to rule them all](#22-one-slider-to-rule-them-all)
-    - [2.2.A Setting the amount = 0](#22a-setting-the-amount-0)
-    - [2.2.B amount at maximum](#22b-amount-at-maximum)
-    - [2.2.C Somewhere in between](#22c-somewhere-in-between)
+    - [2.2.A Set amount to 0](#22a-set-amount-to-0)
+    - [2.2.B Set amount at maximum](#22b-set-amount-at-maximum)
+    - [2.2.C Set amount right](#22c-set-amount-right)
     - [2.2.D Saving the recipe](#22d-saving-the-recipe)
-  - [2.3 Let's start running — many scenes at once: cineFlow batchmode](#23-lets-start-running-many-scenes-at-once-cineflow-batchmode)
-    - [2.3.A The simplest invocation of cineFlow](#23a-the-simplest-invocation-of-cineflow)
-    - [2.3.B Where the recipe comes from](#23b-where-the-recipe-comes-from)
-    - [2.3.C Better than mp4](#23c-better-than-mp4)
-    - [2.3.D What else you get](#23d-what-else-you-get)
+  - [2.3 From one scene to a hundred](#23-from-one-scene-to-a-hundred)
+    - [2.3.A What goes in, what comes out](#23a-what-goes-in-what-comes-out)
+    - [2.3.B What a run looks like](#23b-what-a-run-looks-like)
+    - [2.3.C Where the recipe comes from](#23c-where-the-recipe-comes-from)
+      - [The arrangement that saves you the most work](#the-arrangement-that-saves-you-the-most-work)
+    - [2.3.D The output codec](#23d-the-output-codec)
+    - [2.3.E What else you get](#23e-what-else-you-get)
   - [2.4 The full quality, finally](#24-the-full-quality-finally)
     - [2.4.A How it goes](#24a-how-it-goes)
 - [3. Principle of operation](#3-principle-of-operation)
   - [3.1 Basic Concept](#31-basic-concept)
   - [3.2 The four steps](#32-the-four-steps)
   - [3.3 Where the safeguard sits](#33-where-the-safeguard-sits)
-  - [3.4 And the second half?](#34-and-the-second-half)
-- [4. Reading the views](#4-reading-the-views)
-  - [4.1 Navigation](#41-navigation)
-    - [4.1.A Moving through the film](#41a-moving-through-the-film)
-    - [4.1.B Moving between views](#41b-moving-between-views)
-    - [4.1.C Zoom and pan](#41c-zoom-and-pan)
-    - [4.1.D Flipping](#41d-flipping)
-    - [4.1.E Split-View Mode](#41e-split-view-mode)
-    - [4.1.F Peek](#41f-peek)
-  - [4.2 The most important views in detail](#42-the-most-important-views-in-detail)
-    - [4.2.A Input](#42a-input)
-    - [4.2.B Output](#42b-output)
-    - [4.2.C Neighbour × trust](#42c-neighbour-trust)
-    - [4.2.D Trust geo · Trust photo](#42d-trust-geo-trust-photo)
-    - [4.2.E Trust](#42e-trust)
-    - [4.2.F Sharp gate](#42f-sharp-gate)
+- [4. Getting around](#4-getting-around)
+  - [4.1 Moving through the film](#41-moving-through-the-film)
+  - [4.2 Moving between views](#42-moving-between-views)
+  - [4.3 Zoom and pan](#43-zoom-and-pan)
+  - [4.4 Flipping](#44-flipping)
+  - [4.5 Split-View Mode](#45-split-view-mode)
 - [5. Best Practices](#5-best-practices)
   - [5.1 Pick the right frame](#51-pick-the-right-frame)
   - [5.2 Get the flow right first](#52-get-the-flow-right-first)
-  - [5.3 Find out how far the flow carries](#53-find-out-how-far-the-flow-carries)
+  - [5.3 How many neighbours are worth having](#53-how-many-neighbours-are-worth-having)
   - [5.4 Then adjust the trusts](#54-then-adjust-the-trusts)
   - [5.5 Enhance last](#55-enhance-last)
   - [5.6 Render a short test](#56-render-a-short-test)
   - [5.7 Save the recipe, then let the batch run](#57-save-the-recipe-then-let-the-batch-run)
-  - [5.8 Which flow method](#58-which-flow-method)
-  - [5.9 How to be wrong](#59-how-to-be-wrong)
-- [6. Export from your NLE](#6-export-from-your-nle)
-  - [6.1 The export settings](#61-the-export-settings)
-  - [6.2 Coming back](#62-coming-back)
-- [7. Dust and scratches](#7-dust-and-scratches)
-- [Appendix A — The other views](#appendix-a-the-other-views)
-  - [A.1 Flow fw (HSV) · Warped flow bw (HSV)](#a1-flow-fw-hsv-warped-flow-bw-hsv)
-  - [A.2 Texture weight](#a2-texture-weight)
-- [Appendix B — The settings in detail](#appendix-b-the-settings-in-detail)
-  - [B.1 Engine](#b1-engine)
-    - [B.1.A flow — RAFT / DIS](#b1a-flow-raft-dis)
-    - [B.1.B mode — best / dustA / dustB](#b1b-mode-best-dusta-dustb)
-    - [B.1.C downscale](#b1c-downscale)
-    - [B.1.D context](#b1d-context)
-  - [B.2 Trust](#b2-trust)
-    - [B.2.A geo tab — mismatch [px] · softness](#b2a-geo-tab-mismatch-px-softness)
-    - [B.2.B photo tab — mismatch [0..1] · softness · smooth [px]](#b2b-photo-tab-mismatch-01-softness-smooth-px)
-    - [B.2.C dustA tab — mismatch [MAD] · softness · center_weight](#b2c-dusta-tab-mismatch-mad-softness-center_weight)
-    - [B.2.D dustB tab — mismatch [spread] · softness · disagreement · disagreement softness](#b2d-dustb-tab-mismatch-spread-softness-disagreement-disagreement-softness)
-  - [B.3 Enhance](#b3-enhance)
-    - [B.3.A amount](#b3a-amount)
-    - [B.3.B texture tab — full · gamma · base](#b3b-texture-tab-full-gamma-base)
-    - [B.3.C filter tab — guided / unsharp · sigma · eps](#b3c-filter-tab-guided-unsharp-sigma-eps)
-  - [B.4 Slots and recipes](#b4-slots-and-recipes)
-  - [B.5 Autoplay and Record](#b5-autoplay-and-record)
-    - [B.5.A step size, play / pause](#b5a-step-size-play-pause)
-    - [B.5.B REC — mp4 / ProRes / TIFF](#b5b-rec-mp4-prores-tiff)
-- [Appendix C — Keyboard reference](#appendix-c-keyboard-reference)
-  - [C.1 Navigation](#c1-navigation)
-  - [C.2 View](#c2-view)
-  - [C.3 Autoplay and recording](#c3-autoplay-and-recording)
-  - [C.4 Parameters and files](#c4-parameters-and-files)
+  - [5.8 How to be wrong](#58-how-to-be-wrong)
+- [6. The views in detail](#6-the-views-in-detail)
+  - [6.1 Input](#61-input)
+  - [6.2 Output](#62-output)
+  - [6.3 Neighbour (warped)](#63-neighbour-warped)
+  - [6.4 Neighbour × trust](#64-neighbour--trust)
+  - [6.5 Trust geo · Trust photo](#65-trust-geo--trust-photo)
+  - [6.6 Trust](#66-trust)
+  - [6.7 Sharp gate](#67-sharp-gate)
+  - [6.8 Flow fw · Warped flow bw](#68-flow-fw--warped-flow-bw)
+  - [6.9 Texture weight](#69-texture-weight)
+- [7. The settings in detail](#7-the-settings-in-detail)
+  - [7.1 Engine](#71-engine)
+    - [7.1.A `flow` — RAFT / DIS](#71a-flow--raft--dis)
+    - [7.1.B `mode` — best / dustA / dustB](#71b-mode--best--dusta--dustb)
+    - [7.1.C `downscale`](#71c-downscale)
+    - [7.1.D `context`](#71d-context)
+  - [7.2 Trust](#72-trust)
+    - [7.2.A geo tab — `mismatch` \[px\] · `softness`](#72a-geo-tab--mismatch-px--softness)
+    - [7.2.B photo tab — `mismatch` \[0..1\] · `softness` · `smooth` \[px\]](#72b-photo-tab--mismatch-01--softness--smooth-px)
+    - [7.2.C dustA tab — `mismatch` \[MAD\] · `softness` · `center\_weight`](#72c-dusta-tab--mismatch-mad--softness--center_weight)
+    - [7.2.D dustB tab — `mismatch` \[spread\] · `softness` · `disagreement` · `disagreement softness`](#72d-dustb-tab--mismatch-spread--softness--disagreement--disagreement-softness)
+  - [7.3 Enhance](#73-enhance)
+    - [7.3.A `amount`](#73a-amount)
+    - [7.3.B texture tab — `full` · `gamma` · `base`](#73b-texture-tab--full--gamma--base)
+    - [7.3.C filter tab — guided / gauss · `sigma` · `eps`](#73c-filter-tab--guided--gauss--sigma--eps)
+  - [7.4 Slots](#74-slots)
+  - [7.5 Autoplay and Record](#75-autoplay-and-record)
+    - [7.5.A Step, play / pause](#75a-step-play--pause)
+    - [7.5.B REC — mp4 / tif](#75b-rec--mp4--tif)
+- [8. Export from your NLE](#8-export-from-your-nle)
+  - [8.1 The export settings](#81-the-export-settings)
+  - [8.2 Coming back](#82-coming-back)
+- [9. Dust and scratches](#9-dust-and-scratches)
+- [Appendix — Keyboard reference](#appendix--keyboard-reference)
+  - [A.1 Navigation](#a1-navigation)
+  - [A.2 View](#a2-view)
+  - [A.3 Autoplay and recording](#a3-autoplay-and-recording)
+  - [A.4 Parameters and files](#a4-parameters-and-files)
 
 ---
 
@@ -90,20 +88,19 @@
 Old small-gauge film is grainy. In darker parts of the image so
 grainy that the actual image content is barely visible.
 
-In the old days, projecting the footage onto the silver screen in
-a darkened room, things worked out mostly - your visual system is 
+In the old days, projecting the footage onto the silver screen in a
+darkened room, things worked out well enough — your visual system is
 quite capable of seeing through the grain in this situation.
 
 However, digitized analog material is viewed under quite different
-conditions: normally in a brightly lit office environment, on a 
-normal computer display. It's much harder here to "see through the
+conditions: normally in a brightly lit office environment, on a
+normal computer display. It is much harder here to "see through the
 noise".
 
-cineFlow is a program suite which tries to restore as best as it 
-can the original image content - that is, what was contained in 
-the original scene. Contrary to other approaches to increase 
-visual quality of archive material, cineFlow tries very hard **not** 
-to invent things not present in the material.
+cineFlow is a program suite that tries to restore as much of the
+original image content as it can — that is, what was in front of the
+camera. Where other approaches to improving archive material are
+willing to invent detail, cineFlow is built **not** to.
 
 > If you want to know why this works at all, and where it stops
 > working, see chapter 3. For now the short version is enough: *no
@@ -111,22 +108,22 @@ to invent things not present in the material.
 
 cineFlow consists of two basic elements:
 
-+ **flowQt**: this is an interactive GUI, where you can optimize 
-various processing parameters for a whole film or specific scenes. 
++ **flowQt**: an interactive GUI, where you can optimize various
+  processing parameters for a whole film or specific scenes.
 
-+ **cineFlow**: is the companion-software. It's a batch-program, 
-  speed-optimized, using, if available, GPU-power. 
-  
-Currently, the software is tested under Win11 and WSL2 with the
-appropriate libraries installed. It is expected to run on any
-hardware with a python interpreter.   
++ **cineFlow**: the companion software — a batch program,
+  speed-optimized, using GPU power where available.
+
+Currently, the software is tested under Windows 11, WSL2 and Linux,
+with the appropriate libraries installed. It is expected to run on any
+hardware with a Python interpreter.
 
 ---
 
 # 2. Simple Examples
 
 In the following 5 different ways of using cineFlow are described.
-We start with a simple example and finish with scene-specific 
+We start with a simple example and finish with scene-specific
 processing via fast batch-rendering.
 
 ## 2.1 Degrained footage in less than 5 Minutes
@@ -161,27 +158,19 @@ flowQt reads the file and shows you the first frame of the video.
 
 ### 2.1.C Switch to the Output view
 
-What is displayed on the main view is indicated in the top-left 
-corner in the "View:" selection dialog. It should sit on 
-"1. Input". Switch it to "2. Output (best)", simply by pressing
-the numberkey "2". 
+Press **2**. The Status box on the right reports that something is
+being computed, and the view switches to *2. Output (best)*. Give it a
+few seconds — this is the real computation, not a preview.
 
 ![The Output View](images/12-viewdisplay.png)
 
-It will take a while, depending on your hardware
-up to 4 seconds, until the main display updates, as a lot of 
-computations need to happen before the output image is displayed.
+When the frame appears, press **cursor up**: you are back at the input
+image. **Cursor down** returns to the output. Go back and forth a few
+times; that comparison is what flowQt is for.
 
-Once you see "2. Output (best)" as selected view, you are ready 
-to write out the result. 
-
-> In case you want to compare input and output, you can switch 
-> immediately between these two views by using the numberkeys "1"
-> for the input and "2" for the output. Another way is to use 
-> the Up- and Down-Cursor keys. This cycles through a preset
-> list of views. If you get lost, remember "2" always brings 
-> you back to the output view. For more info about navigation and
-> views, see chapter 4.
+> **If you get lost in the views:** **1** always takes you to the
+> input image, **2** always to the output. Whatever else is on screen,
+> those two keys bring you back.
 
 ### 2.1.D Writing out the degrained result
 
@@ -191,8 +180,9 @@ At the bottom right there is a box labelled **Autoplay | Record**.
 
 
 1. Go to the first frame of your footage (`Home`).
-2. Make sure you are on the "2. Output (best)" page and the split-view
-   option is off (it is off if you do not see a vertical yellow line. Press key "l" until the yellow line disappears).
+2. Make sure you are on the *2. Output (best)* view and the split-view
+   option is off — it is off when there is no vertical yellow line.
+   Press **l** until the line disappears.
 3. Set the selector next to REC to **mp4**.
 4. Press **REC**. The button turns red: recording is armed and
    running.
@@ -208,71 +198,50 @@ You will find it next to your material, in a folder called `_clips`.
 
 That is all. You have a degrained video, and you configured nothing.
 
-> **One caveat about judging the result.** H.264 discards exactly the
-> kind of fine, irregular structure this software works with, so the
-> *detail* you see here is worse than what was computed — for that,
-> look at the still, or use one of the better formats in 2.3 and 2.4.
-> For judging how the result behaves *over time*, though, a clip like
-> this is exactly right and there is no substitute. See 5.6.
-
 ---
 
 ## 2.2 One slider to rule them all
 
-Now we do adjust something. Exactly one thing.
+Now we adjust something. Exactly one thing.
 
 In the **Enhance** box, at the top, there is a slider called
-**amount**. It is the master control for the second half of the
-software.
+**amount**. This slider scales the effect of the whole Enhance stage;
+at 0 the stage does nothing at all.
 
 ![the Enhance Box](images/07-enhanceBox.png)
 
-Stay on the `Output` view and work through these in order.
+Stay on the `Output` view and work through the steps below in order.
 
-### 2.2.A Setting the amount = 0
+### 2.2.A Set amount to 0
 
-Pull it all the way down.
+Drag the **amount** slider all the way to the left, until the field
+next to it reads 0. The sliders below it grey out: the Enhance stage
+is switched off, and what you see is the fused result on its own.
 
-What you see now is the reconstruction on its own: the grain is gone,
-the image is calm — and it looks flat. Something is missing. Fine
-structure which was hidden beneath the grain has been recovered, but
-it is yet not visible. 
+### 2.2.B Set amount at maximum
 
-That is honest, but it is not the end of the story.
+Now pull the slider all the way to the right. The full force of the Enhance
+stage is now acting on the image.
 
-### 2.2.B amount at maximum
-
-Pull it all the way up.
-
-This is where you see why there is a slider and not a switch. The
+On most material, it will look horrible. The
 software lifts everything that looks like structure — and what
-*looks* like structure is not only structure. How dramatic this is
-depends on your material: obvious on high-contrast footage, subtler on
-flat footage.
+*looks* like structure is not always structure.
 
-### 2.2.C Somewhere in between
+### 2.2.C Set amount right
 
-Now find the position where it looks right. Use Up and Down for switching between original (`Input`) and result (`Output`) while you
-do it, so that your reference is the actual film rather than the
-previous slider position. Of course, you can also use keys `1` and `2` for this comparison
+Find the slider position where it looks right. For reference, use Up and Down for switching between original (`Input`) and result (`Output`).
 
-Zoom in while you do it — scroll wheel, or double-click to jump to
-1:1 and back.
-Click and drag moves the frame. 
+While testing the slider setting, zoom in — either with the scroll wheel, or simply double-click to jump to 1:1 and back. To move around the frame, drag with the left mouse button.
 
-At full-frame size you cannot see what you are judging; more on different view modes in 4.1.C.
+What you just did is the real work with this software. But it's only
+the beginning.
 
-What you just did is the real work with this software. But it's only 
-the beginning. 
+> **Nothing you can break.** Double-clicking any slider resets that one
+> to its default, and the **Default** button next to the slot buttons
+> restores the factory settings altogether. Turn every knob you like;
+> there is always a way back.
 
-> **Nothing you can break.** Next to the slot buttons there is one
-> labelled **Default**, which restores the factory settings. Turn every
-> knob you like; there is always a way back. Double-clicking on any
-> slider resets that one to its default.
->
-> The only things this program ever writes to your disk are the recipe
-> file described below and whatever you explicitly record with REC. It
-> never touches your original material.
+![The great Default button](images/S_005_2026.08.12.png)
 
 ### 2.2.D Saving the recipe
 
@@ -281,13 +250,16 @@ as you moved the slider?
 
 ![the Save Recipe button](images/08_SaveRecipe.png)
 
-That means your current settings differ from what is stored. Press the button to restore it to its normal setting.
+That means your current settings differ from what is stored. Press the `Save recipe`
+button.
 
-The moment you do this, flowQt writes a small text file next to your material: `cineflow.json`
-for a folder, `<name>_cineflow.json` beside a video file. It contains
-every number your picture was computed with.
+The moment you do this, flowQt writes a small text file next to your
+material: `cineflow.json` for a folder, `<name>_cineflow.json` beside a video file. It contains
+every number the current result was computed with.
 
-The file is more than a souvenir. It is the bridge to the next
+The button returns to its normal colour.
+
+This file is more than a souvenir. It is the bridge to the next
 section: **this is precisely the file the batch program reads.** What
 you tuned by hand here, it will apply across a hundred scenes without
 you touching a slider again.
@@ -297,72 +269,196 @@ the defaults.)*
 
 ---
 
-## 2.3 Let's start running — many scenes at once: cineFlow batchmode
+## 2.3 From one scene to a hundred
 
 flowQt is built for looking and adjusting. It computes each frame at
-the moment you look at it, which suits one pair of eyes and does not
-suit a hundred scenes.
+the moment you ask for it. That is right while you are tuning, and
+useless once the settings are found.
 
-That is what the second program is for. **cineFlow** has no window and
-no sliders, only throughput. It computes the same stages, but on the
-graphics card, with four read requests in flight at once.
+That is where the second program comes in. **cineFlow** has no window
+and no sliders: only throughput. It computes the same stages as
+flowQt, scene after scene, without asking you anything.
 
-### 2.3.A The simplest invocation of cineFlow
+### 2.3.A What goes in, what comes out
 
 ```
-python cineFlow.py /path/to/videos /path/to/output
+python cineFlow.py /path/to/scenes /path/to/output
 ```
 
-That is the whole command. cineFlow finds the scenes itself: every
-video file in the input folder is one.
+That is the whole command. cineFlow is pointed at a folder, not at a
+single scene, and everything it finds inside becomes one scene: a
+sub-folder full of TIFFs, or a video file.
 
-![Startup messages of cineflow](images/09-cineFlowStartUp.png)
+```
+scans/
+├── Szene_1/              ← a folder of TIFFs: one scene
+│   ├── Frame_00000001.tif
+│   ├── Frame_00000002.tif
+│   └── ...
+├── Szene_2/
+│   └── ...
+└── USA_1981.mp4       ← a video file: one scene
+```
 
-While it runs you see, per scene, what is being computed and how fast.
-At the end you get a summary table.
+The output folder works differently. cineFlow does not write into it
+directly; it creates a sub-folder named after the moment the run
+started, and everything from that run goes in there. Start a second
+run and you get a second folder — nothing is ever overwritten.
 
-![Closing table of cineflow](images/11-cineflowOutput.png)
+```
+out/
+└── 2026-08-09_1835/
+    ├── Szene_1/
+    │   ├── Szene_1_000001.tiff
+    │   └── ...
+    ├── Szene_2/
+    │   └── ...
+    └── USA_1981.mov
+```
 
-### 2.3.B Where the recipe comes from
+Each scene comes back in the shape it went in: a folder of TIFFs stays
+a folder of TIFFs, a video file stays a video file. The frame numbers
+continue the numbering of the source, so a scene that started at frame
+72 still starts at frame 72. Video output is written as ProRes 4444,
+which DaVinci reads without complaint.
 
-Three sources, each overriding the previous one:
+### 2.3.B What a run looks like
 
-1. **Nothing** — cineFlow uses its defaults, and says so:
+```
+====================================================================
+  CINEFLOW v2.0
+  input:   /mnt/i/scans
+  output:  /mnt/i/out
+  run:     2026-08-09_1835/
+====================================================================
+[scenes] 3 scene(s) found
+[space] estimated need: 4.05 GiB (uncertain, video input) | free on /mnt/i/out: 2415.14 GiB
+  Szene_1: 69 Frames, ~0.95 GiB
+  Szene_2: 129 Frames, ~1.77 GiB
+  USA_1981: video, ~1.15 GiB (rough estimate)
+
+[1/3] Szene_1  (tiff_dir)
+  [best] 69 frames, 1800x1350 (TIFF) | downscale=2.00 | context=+-1 (4 flow calls/frame)
+  [best] -> /mnt/i/out/2026-08-09_1835/Szene_1
+  [best] 100.0% | Frame 69/69 | 1.87 fps | ETA: 0:00:00
+
+[2/3] Szene_2  (tiff_dir)
+  [config] no cineflow.json -- using defaults (best, RAFT, context=+-1)
+  [best] 129 frames, 1800x1350 (TIFF) | downscale=2.00 | context=+-1 (4 flow calls/frame)
+  [best] -> /mnt/i/out/2026-08-09_1835/Szene_2
+  [best] 100.0% | Frame 129/129 | 1.84 fps | ETA: 0:00:00
+
+[3/3] USA_1981  (video_file)
+  [best] 240 frames, 1440x1080 (Video) | downscale=2.00 | context=+-1 (4 flow calls/frame)
+  [best] Codec: prores4444
+  [best] -> /mnt/i/out/2026-08-09_1835/USA_1981.mov
+  [best] 100.0% | Frame 240/240 | 2.31 fps | ETA: 0:00:00
+```
+
+Four things worth reading in that:
+
+- **The scenes are found by themselves**, and each one is announced
+  with what it is: `tiff_dir` or `video_file`.
+- **Disk space is estimated before anything runs**, per scene. If it
+  does not fit, you are asked before the first frame is written. For
+  video input the estimate is crude, and says so.
+- **Szene_1 says nothing about its configuration, Szene_2 does.**
+  Silence means a recipe was found and is being used. The `[config]`
+  line appears only when there is none — then you are told what is
+  being used instead.
+- **Every scene reports what it is doing before it does it**: how many
+  frames, at what resolution, with which settings, and where the
+  result goes.
+
+At the end you get a summary:
+
+```
+===============================================================================
+  CINEFLOW v2.0  --  3 scene(s) in 0:03:56
+===============================================================================
+  scene              mode   downscale context  frames    fps  output
+-------------------------------------------------------------------------------
+  Szene_1            best        2.00     +-1      69   1.87  Szene_1
+  Szene_2            best        2.00     +-1     129   1.84  Szene_2
+  USA_1981           best        2.00     +-1     240   2.31  USA_1981.mov
+-------------------------------------------------------------------------------
+  total                                           438   1.86
+===============================================================================
+```
+
+### 2.3.C Where the recipe comes from
+
+There are three places cineFlow looks, each overriding the previous
+one:
+
+1. **Nothing at all** — the built-in defaults are used, and cineFlow
+   says so:
    `[config] no cineflow.json -- using defaults (best, RAFT, context=+-1)`
 2. **A `cineflow_folder.json` in the input folder** — applies to every
-   scene below it. This is the convenient route when all your material
-   should get the same treatment.
+   scene in the run. This is the convenient route when most of your
+   material should get the same treatment. cineFlow announces it in
+   the header: `config:  cineflow_folder.json (applies to every scene)`
 3. **A `cineflow.json` beside an individual scene** — the file flowQt
-   wrote in 2.2.D. It overrides everything else.
+   wrote in 2.2.D. It overrides everything else, and cineFlow says
+   nothing about it: silence means the scene has its own recipe.
 
-So you can tune one difficult scene in flowQt, save its recipe, and
-let the batch use your settings for that scene and the general ones
-for all the others.
+Note that the folder file is only read in the input folder itself. One
+placed inside a scene folder is not a folder config and will be
+ignored.
 
-### 2.3.C Better than mp4
+#### The arrangement that saves you the most work
 
-For video input, cineFlow writes **ProRes 4444** by default — that is,
-something you can actually keep working with, rather than a preview.
+A reel usually consists of many scenes that were shot under similar
+conditions and a handful that were not. That maps directly onto the
+two files.
 
-Use a call like this
+Tune one representative scene in flowQt — a normal one, nothing
+special. Then **right-click** the **Save recipe** button. In the
+dialog that opens, navigate up to your input folder, change the file
+name to `cineflow_folder.json`, and save.
 
 ```
-python cineFlow.py ... --video-codec prores4444xq
+scans/
+├── cineflow_folder.json     ← the general treatment
+├── Szene_1/
+├── Szene_2/
+├── Szene_3/
+│   └── cineflow.json        ← this one needed different settings
+├── Szene_4/
+└── ...
 ```
 
-if you want the highest tier.
+Now every scene is processed with the general recipe, except Szene_3,
+which brings its own — saved there with a plain left-click on **Save
+recipe**, as in 2.2.D. Twenty scenes, two files, one batch run.
 
-### 2.3.D What else you get
+One thing to know about this: flowQt writes a complete recipe, every
+parameter that matters for the current mode, not just the ones you
+changed. So a scene file does not inherit the folder settings and
+adjust a few of them; it replaces them. If you tune a scene in flowQt,
+tune it as a whole.
+
+### 2.3.D The output codec
+
+ProRes 4444 is the default for video input — something you can
+actually keep working with, rather than a preview. If you want the
+highest tier, ask for it:
+
+```
+python cineFlow.py /path/to/scenes /path/to/output --video-codec prores4444xq
+```
+
+### 2.3.E What else you get
 
 Alongside the images, cineFlow drops a `cineflow_run.json` into every
 output folder. It records the numbers used, how long it took, and
 which version did the work.
 
-This sounds like bookkeeping, and it is, but it is the useful kind:
-when you come across a result six months from now and cannot remember
+When you come across a result six months from now and cannot remember
 how it was made, the answer is sitting next to it.
 
 ---
+
 
 ## 2.4 The full quality, finally
 
@@ -371,8 +467,8 @@ route to a first result. For serious work it is the wrong one.
 
 Every video file is compressed. The codec decides what it considers
 unimportant and throws it away — and what it considers unimportant is
-precisely fine, irregular structure. Which is precisely what this
-software sets out to collect across frames. It can only recover what
+fine, irregular structure. Which is precisely what this software sets
+out to collect across frames. It can only recover what
 is still there.
 
 The full route therefore uses **image sequences**: a folder of TIFF
@@ -389,25 +485,26 @@ files, one frame per file, uncompressed, 16 bit.
 
 The output is another TIFF sequence, uncompressed. The file names
 carry the **global frame number** from your source material, so that
-everything lands back in the right order when you re-import it.
-
-![Output as tifdirs](images/10-tifDirs.png)
+everything lands back in the right order when you re-import it. The
+layout is the one from 2.3.A: one folder per scene, TIFFs inside.
 
 > **On compression:** leave it off when you export. With grainy
 > material LZW does not make the files smaller, it makes them
 > *larger* — grain is essentially incompressible, so all you get is
-> the overhead. Measured on one frame: 17.0 MB compressed against
-> 13.9 MB uncompressed, identical content. It also costs time on
-> every write and every read.
+> the overhead. Measured on one frame, identical content: 13.9 MB
+> uncompressed, 17.0 MB with LZW. It also costs time on every write
+> and every read.
 
-> **On importing to and from a NLE:** see below for a working recipe
-> for DaVinci Resolve. Other NLEs have not been tested yet.
+> **On getting the sequences in and out of your editing program
+> (NLE):** chapter 8 has a working recipe for DaVinci Resolve. Other
+> NLEs have not been tested yet.
+
 ---
 
 # 3. Principle of operation
 
-*(You can run the program without this chapter. But every view in
-chapter 4 and every setting in Appendix B sits at one of the steps
+*(You can run the program without this chapter. But every view discussed in
+chapter 6 and every setting in chapter 7 sits at one of the steps
 described here, and without them they are hard to place.)*
 
 ## 3.1 Basic Concept
@@ -417,36 +514,46 @@ not have to.
 
 Anyone computing a clean image out of grainy material has three
 obvious options: sharpen, which amplifies the grain along with
-everything else; smooth, which takes the detail with it; or invent. 
+everything else; smooth, which takes the detail with it; or invent.
 
 There is a fourth, and it rests on something obvious: **the world in
 front of the camera was stable. The sampling was not.**
 
 The wall stood still while the emulsion rolled fresh dice on every
-exposure. The face moved steadily while the grain jumped. What behaves
-*systematically* from frame to frame belongs to the scene; what jumps
-belongs to the film.
+exposure. The face moved steadily while the grain jumped. What behaves *systematically* from frame to frame belongs to the
+scene; what jumps does not.
 
 That distinction can only be made in time. Within a single image it is
 impossible — which is why every method that works frame by frame must
 eventually guess or invent, and why this one does not have to.
 
+cineFlow uses data from up to eight frames before and after a frame to
+differentiate the real image signal from the noise.
+
 ## 3.2 The four steps
 
 Each output frame is built in four steps. They are worth knowing
-because every view in chapter 4 sits at one of them, and every setting
-in Appendix B acts on one of them.
+because every view in chapter 6 sits at one of them, and every setting
+in chapter 7 acts on one of them.
 
 | | step | what it does | what it costs |
 |---|---|---|---|
 | 1 | **Flow** | for every neighbour, work out how the picture moved from there to here, and shift it into place. Reconstructs geometry. | expensive |
 | 2 | **Trust** | judge each shifted neighbour, pixel by pixel: is the motion consistent, does it still look like it belongs? | medium |
-| 3 | **Fusion** | blend the neighbours into the input frame, each weighted by its trust | medium |
-| 4 | **Enhancing** | restore contrast in the fine structure, but only where there is structure and where the blend was trusted | cheap |
+| 3 | **Fusion** | combine what the neighbours measured of the same point, each as far as it can be trusted | medium |
+| 4 | **Enhance** | restore contrast in the fine structure — but only where there is structure, and only as far as the fusion vouches for it | cheap |
 
-The order matters for the waiting, too. Turning a setting that acts on
-step 4 is nearly instant, because steps 1–3 are reused. Changing the
-flow method or `context` throws everything away and starts at step 1.
+Step 3 is sensor fusion in the ordinary engineering sense, except that
+the sensors are not different instruments but the same one at
+different points in time.
+
+Step 4 is not a sharpening pass bolted on at the end. It reads the
+trust maps from step 2 and the result of step 3, so it knows where the
+detail it lifts was actually measured — and leaves the rest alone.
+
+The order also decides how long you wait. Change something in a late
+stage and only that stage recomputes; change the flow and everything
+after it goes with it.
 
 ## 3.3 Where the safeguard sits
 
@@ -468,31 +575,19 @@ invented.** When in doubt, nothing happens. An area the software is
 unsure about stays as grainy as it was. That is sometimes
 unsatisfying. It is always honest.
 
-## 3.4 And the second half?
-
-What remains missing after the collecting is contrast in the fine
-structures — hence the flat picture at `amount = 0`. Step 4 ("Enhancement") restores
-it, but not uniformly: it looks at where there is structure at all and
-leaves smooth areas alone. More importantly, it uses the per pixel computed
-trust value to gate its action. Where there is no trust, there's no 
-enhancement.
-
-That is also why `amount` has a top end that looks bad. Not because
-something breaks, but because you are telling the software to lift
-things it is not itself convinced about.
-
 ---
 
-# 4. Reading the views
 
-Chapter 2 used only two views. There are thirteen. Nine of them sit in the
-cycle out of the box; this chapter covers those, and how to move
-around. The other views can be transferred into the cycle by the use of the 
-cycle-editor (key "c") in case you need them.
+# 4. Getting around
 
-## 4.1 Navigation
+The main display of flowQt always shows one frame. Two directions of
+movement change what you see there: through the scene, frame by frame,
+and through the views that show what the program computed for the
+frame you are on. Both are driven from the keyboard.
 
-### 4.1.A Moving through the film
+What the individual views mean is chapter 6.
+
+## 4.1 Moving through the film
 
 The cursor keys are the primary way to navigate through the view cycle and your footage
 
@@ -503,17 +598,17 @@ The cursor keys are the primary way to navigate through the view cycle and your 
 | Ctrl + Cursor-Left / Right | 100 frames |
 | Home / End | first / last frame of the scene |
 
-Paging to another frame is much faster on the `Input` view than anywhere else, because nothing
-has to be computed there. Find the passage you want on the `Input` view,
-then switch to the view you need.
+Paging to another frame is much faster on the `Input` view than anywhere else, because nothing has to be computed there. Find the passage you want on the `Input` view,then switch to the view you need.
 
-### 4.1.B Moving between views
+## 4.2 Moving between views
 
-Cursor-Up and Cursor-Down step through your list of views, cyclically;
-keys 1–9 jump straight to one. The `View:` box shows the same list.
+The views are arranged in a cycle. Cursor-Up and Cursor-Down step
+through it, and it wraps around — keep going in one direction and you
+come back to where you started. The keys `1`–`9` jump straight to a
+certain view. The `View:` box shows which one you are on and how many
+there are.
 
-Out of the box it holds nine, and their order is a descent from the
-result to its causes:
+Out of the box the view cycle holds nine views:
 
 | | | asks |
 |---|---|---|
@@ -523,37 +618,24 @@ result to its causes:
 | 7–8 | Trust geo, Trust photo | which of the two tests rejected it? |
 | 9 | Sharp gate | and what does the sharpening make of it? |
 
-That list is the whole of what you can reach. A diamond in front of an
-entry marks a view that depends on the test neighbour currently
-selected with `n` and `m`.
 
-![The default view cycle](images/04-StandardViewList.png)
-
-A view that is not in the Cycle list 
+A view that is not in the view cycle
 cannot be called up at all — you add it first, in the `Cyclic View
-Editor` (key `c`). So the editor is not a settings dialogue you visit
-once; it is how you decide what this program shows you. Start with the
-nine and add the others when you have a reason to. Or remove stuff you
-are not interested in.
+Editor` (key `c`). The catalogue holds more than the nine views above.
 
-If you get lost, `2` always brings you back to the output.
+If you get lost, `2` brings you back to the output — as long as you
+have not rearranged the cycle.
 
-This chapter covers the keys you need for the views. The complete
-list is in Appendix C, and `h` shows the same thing inside the
-program.
-
-### 4.1.C Zoom and pan
+## 4.3 Zoom and pan
 
 Scroll wheel zooms around the pointer. `z` and `Shift+z` step through
-the fixed steps (Fit, 1×, 2×, 4×, 8×) forward and backward. A double-click into the
-image toggles between `Fit` and the last step you were on. Click and
-drag moves the frame.
+the fixed zoom steps (Fit, 1×, 2×, 4×, 8×) forward and backward. A double-click into the image toggles between `Fit` and the last step you were on. Click and drag moves the frame.
 
 > **Note:** Most of what this program does happens below the size of a screen
 pixel at full-frame view. If you are judging grain, alignment or
-sharpening at `Fit`, you are not seeing it.
+sharpening at `Fit`, you might have difficulty seeing it.
 
-### 4.1.D Flipping
+## 4.4 Flipping
 
 Most views only mean something next to another one. Up-Down between
 two neighbouring entries is the basic gesture of this program, which
@@ -564,174 +646,67 @@ This is also the fastest way to judge the result at all — flip between
 `Input` and `Output` and watch what moves. The eye is far better at
 spotting a change than at describing a difference.
 
-> Another fun thing to do: compare the forward and backward flow images. In principle, they display the 3D image structure. In a perfect world, both should be identical. Normally, they are not.
+> Another fun thing to do: compare the forward and backward flow
+> images. In principle, they display the 3D image structure. In a
+> perfect world, both should be identical. Normally, they are not.
 
-Of course, fast view switching can also be achieved via the number keys - handy if 
-you want to compare two views which are not neighbours in the view cycle. 
+For two views that are not neighbours in the cycle, the number keys do
+the same job.
 
-### 4.1.E Split-View Mode
+## 4.5 Split-View Mode
 
 Key `l` splits the frame between two views, with a divider you can
-drag. You can compare for example input and output easily.
+drag. Press it again to step through the different split layouts, and
+once more to switch the mode off — the yellow line disappears.
 
-The point is the dragging: park the divider on a specific detail
-— an edge, a face, a caption — and sweep it back and forth. Structure
-that sits in the same place on both sides passes through the line
-without moving; anything misaligned jumps as the line crosses it.
+![Split view: input against output](images/03-ResultPageSplitView.png)
 
-![An advanced result display](images/03-ResultPageSplitView.png)
+A small control above the display area shows which layout is active,
+and lets you set it with the mouse instead:
 
-Press `l` again to cycle through the different split layouts. The split-view
-mode is off again if the yellow line disappears. There is a little selection above 
-the main display area, which shows the current mode split-view is operating in:
+![The split-view controls](images/13-splitView.png)
 
-![An advanced result display](images/13-splitView.png)
-
-You can select the desired output here as well. The selection box right 
-to the view mode lets you select what the current view is compared against.
-
-The available selections are `In / Out / best`:
+The box next to it decides what the current view is compared against.
+Three references are available, and `k` steps through them:
 
 - **In** — the untouched input frame.
 - **Out** — the final result of the current mode.
-- **best** — the blend without dedusting. This is how you see what the
-  dedust costs you. 
-  
-> **Try it.** Set the mode to `dustA` (left panel), the view to
-> `Output`, switch the split on and pick `best` as the reference.
-> Dragging the line across the image shows you what the dust mode
-> found and removed.
-  
-Key `k` steps through the three references `In / Out / best`.
+- **best** — the blend without dedusting. Only meaningful in the dust
+  modes; it shows what the dedusting changed, in both directions
+  (chapter 9).
 
-### 4.1.F Peek 
+Now for the part that makes this worth using: the dragging. Park the
+divider on a specific detail — an edge, a face, a caption — and sweep
+it back and forth. Structure that sits in the same place on both sides
+passes through the line without moving; anything misaligned jumps as
+the line crosses it.
 
-This control is special, and in practice rarely used.
-
-![Peek-Mode](images/14-peek.png)
-
-
-
-Set to `on-edit`, touching a trust or gate slider briefly brings up
-the map belonging to that slider, and ESC returns you to the view you
-were on. Left at `off` (the default), you stay where you are and watch the effect on
-the result itself — which is what you want once you know what a slider
-does.
-
-## 4.2 The most important views in detail
-
-### 4.2.A Input
-
-The frame as it came off the film. Nothing computed here — no flow, no
-trust, no blending.
-
-This view is available in all other views via the split-view option.
-
-### 4.2.B Output
-
-The most important view: this is the picture that goes to disk. Note 
-that the current computing mode is added in brackets, like "Output (best)" 
-or "Output (dustA)" for example.
-
-`Out` in the split box refers to the same view. So you can put the final result
-next to any other view without leaving that view — a trust map on
-one side, what it did to the picture on the other.
-
-### 4.2.C Neighbour × trust
-
-This display shows what a single neighbour contributes to the output. Bright =
-accepted, black = rejected. Keys `n` and `m` pick which neighbour is used;
-the label next to the slider says which one (`In+1`, `In-2`, …).
-
-![The neighbour selection slider](images/15-nbrslider.png)
-
-Two things to aim for at once:
-
-- **As little black as possible.** Every black area is a neighbour
-  that did not help. Read this straight off this view.
-- **But as much black as necessary.** Everything that looks funny in
-  the warped neighbour must be black here. For this, flip between
-  `Neighbour × trust` and `Neighbour (warped)`.
-
-Large black patches come from geo, fine speckle from photo.
-
-The offset is not limited by `context` — step it outward past the
-blend window and watch where `Neighbour × trust` finally goes black.
-That is how far the flow still carries, and it is how you find a
-`context` worth setting: usually the limit is so generous that compute
-time binds first, but in fast-moving scenes it can collapse at the
-very next neighbour.
-
-### 4.2.D Trust geo · Trust photo
-
-The two consistency gates, one view each. An alternative way to set
-their parameters.
-
-Aim for a mostly white area on the near neighbours — then that
-neighbour contributes well to the output.
-
-Geo deals with the *large holes*, photo with the *small* ones.
-
-After a while you will set both faster on `Neighbour × trust`.
-
-> In the dust modes the photo sliders have no effect on the result:
-> the group consensus takes over that job. They are greyed out there,
-> and the `Trust photo` map keeps responding even though the output
-> does not.
-
-### 4.2.E Trust
-
-How much was trusted *in total* — the mean over all blended
-neighbours. 
-
-`Neighbour × trust` answers "what did this one neighbour contribute";
-this one answers "how much came in altogether". White means every
-neighbour was accepted here, dark means the frame is largely left to
-stand on its own — and will still be as grainy as it started.
-
-The title carries the mode, and the map really does differ: in `best`
-the neighbour weights are geo × photo, in the dust modes geo × group
-consensus.
-
-### 4.2.F Sharp gate
-
-The sharp gate is the interface between restoration and enhancement:
-it is what the adaptive sharpener is fed with. In practical use it is
-the most important display — but it takes a while to read.
-
-Read it like this: dark areas are not enhanced at all, bright areas
-are, either directionally with a Guided Filter or evenly with a
-classical unsharp mask, depending on the filter you chose.
-
-Its appearance is largely controlled by the sliders of the `texture`
-tab, `full` and `gamma` above all (Appendix B).
 
 ---
 
 # 5. Best Practices
 
-There is an order to this, and it is worth following: it is the same
-order as the four steps in 3.2, and that is not a coincidence. Each
-step reuses what the ones before it computed. Work forwards and the
-program keeps up with you; change the flow after you have set
-everything else and all of it is thrown away.
+This chapter is about how to proceed and what to look for. The order
+of the sections is the working order: it follows the four steps from
+3.2, because each step reuses what the ones before it computed. Work
+forwards and the program keeps up with you — change the flow after you
+have set everything else, and all of it is thrown away.
 
 ## 5.1 Pick the right frame
 
-Not a pretty one. Take a hard spot — fast motion, a dark area, a fast-moving
-object edge. What works there works everywhere.
+Not a pretty one. Take a hard spot — fast motion, a dark area, the
+edge of a fast-moving object. What works there works everywhere.
 
-Take it from the **middle of the scene**, where you can be sure all
-its neighbours exist. Pressing Shift+Cursor-Left once from the start
-is enough. At the very first or last frame half the neighbourhood is
-missing, and you would be tuning against a case that does not
-represent the scene.
+Take it from **somewhere with neighbours on both sides**. Pressing
+Shift+Cursor-Left once from the start puts you on frame 10, which is
+enough for any context setting.
 
-Then zoom in. Everything below is invisible at `Fit`.
+At the very first or last frame half the neighbourhood is missing, and
+you would be tuning against a case that does not represent the scene.
 
 ## 5.2 Get the flow right first
 
-Flip between `Neighbour (warped)` and `Neighbour × trust`.
+Go to `Neighbour (warped)` and flip against `Input`.
 
 `Neighbour (warped)` should look like your input frame. That is the
 whole point of the operation: a correctly warped neighbour is a second
@@ -739,41 +714,99 @@ photograph of the same moment. Wherever it does *not* — smeared edges,
 doubled contours, something in the wrong place — the flow got it
 wrong.
 
-Two settings, in this order:
+The two settings with the largest influence, in this order:
 
-- **downscale** — larger values give smoother flow as a rule, at the
-  cost of fine structure. But it runs also faster.
-- **flow method** — for details, see the table in 5.8. RAFT is just fine most of the time.
+- **flow method** — RAFT most of the time, see the table below.
+- **downscale** — larger values usually give smoother flow, at the
+  cost of fine structure, and run faster. Note that RAFT has a limit
+  here: at a given frame size it needs a certain minimum, and flowQt
+  raises the slider to it by itself, with a note in the status bar.
+
+| material | what to do |
+|---|---|
+| normal scenes | RAFT |
+| large areas with little texture | RAFT — it fills in sensibly where DIS has nothing to hold on to |
+| lots of small structure (branches, foliage, fences) | DIS at a low `downscale` |
+| dirty material | dust mode, see chapter 9 |
+| dirt *and* fast motion | clean it up in the NLE first |
+
+The reason DIS is worth having at all is not accuracy. It runs on the
+CPU, so it is not bound by the VRAM limit and can work at `downscale`
+1.0 — and on fine structure a finer scale beats a better estimator at
+a coarser one.
+
+> There is a second difference, and it runs against intuition. Where
+> there is no correspondence at all, RAFT fills the gap with smooth,
+> self-consistent flow that *passes* the geometric test — so bad data
+> gets blended in with full confidence. DIS fails visibly in the same
+> place, the test rejects it, and the input frame is left alone. The
+> worse estimator is the safer one here.
 
 
-## 5.3 Find out how far the flow carries
+## 5.3 How many neighbours are worth having
+
+`context` pulls in two directions. More neighbours give a more stable,
+less noisy result; fewer of them cost less time. What decides the
+upper end is the material: at some distance the flow no longer reaches
+the centre frame, and any neighbour beyond that contributes nothing.
 
 Stay on `Neighbour × trust` and step the neighbour outwards with `m`.
-Watch where the map finally goes black: that is the reach of the flow
-on this material.
+Watch where the map goes black: that is the reach of the flow on this
+scene, and there is no point setting `context` beyond it.
 
-You get an idea of how large you can set the  `context`. Usually the 
-reach is generous enough that compute time is the real limit; however, in fast-moving scenes it can collapse at the very next neighbour, and then you know it before the batch
-does.
+Usually the reach is generous and compute time is the real limit. In
+fast-moving scenes it can collapse at the very next neighbour — and
+then you know it before the batch does.
 
 ## 5.4 Then adjust the trusts
 
-Now the two gates, geo first, then photo.
+Two gates, geo first, then photo. They test different things, and that
+is why their maps look different.
 
-Aim for as little black as possible — every black area is a neighbour
-that did not help. But as much black as necessary: everything that
+**geo** checks the consistency of the flow computation. Fast-moving
+objects that occlude parts of the image lead to larger dark patches in
+the `Trust geo` map.
+
+**photo** compares the pixel values a neighbour brings along with the
+ones already there, one pixel at a time — which is why the
+`Trust photo` map looks like a speckle pattern.
+
+Each gate has two sliders: a threshold — how much error is still
+acceptable — and a softness, which decides whether the transition from
+accepted to rejected is abrupt or gradual.
+
+Aim for as much white as possible — every black area is a neighbour
+that did not help — and as much black as necessary: everything that
 looked wrong in `Neighbour (warped)` must be black here.
 
-Large patches are geo, fine speckle is photo.
+The maps alone will not tell you when you are right. Check the result
+as well:
 
-If you see double contours, chances are that your photo mismatch 
-slider is too generous. 
+- **geo too white** — artefacts along object edges. Compare `Neighbour
+  (warped)` against `Neighbour × trust`: whatever looks strange at the
+  edge of a fast-moving object should be safely dark in the second.
+- **photo too white** — double contours on small, fast-moving objects.
+- **either one too dark** — the noise in the output goes up. You have
+  thrown away neighbours that would have helped.
+
+This is the part to experiment with. The interaction between the two
+gates is not obvious, and you need a feel for what each slider does to
+the end result. If that is more work than you want: the defaults work
+for most material.
 
 ## 5.5 Enhance last
 
-Pull `amount` up from 0. Judge it both ways — against `Input` (keys
-`1` and `2`, or Up/Down) and against the previous slider position.
-Neither is better; they catch different things.
+The main control of the Enhance stage is `amount`. At 0 the stage is
+switched off; useful values are roughly between 1.5 and 4.0.
+
+Where in that range you end up depends on what the result is for, and
+on the taste of whoever will watch it. Judge it both ways — against
+`Input` (keys `1` and `2`, or Up/Down) and against the previous slider
+position. Neither is better; they catch different things.
+
+The status bar below the display and the statistics plot (key `t`)
+show what the stage is doing to the distribution of values; both are
+described in 6.9.
 
 ## 5.6 Render a short test
 
@@ -791,50 +824,399 @@ So render a piece and look at it:
 Then watch the clip properly. If something pumps or crawls, go back
 and correct — usually the trust settings, sometimes `context`.
 
-> **What mp4 is and is not good for.** H.264 discards exactly the kind
-> of fine, irregular structure this software collects, so do not judge
-> *detail* on it — for that, go back to the still. But for *temporal*
-> behaviour it is the right tool and the only practical one.
-
 ## 5.7 Save the recipe, then let the batch run
 
 Press **Save recipe**. The file lands next to your material and is
-exactly what cineFlow reads (2.2.D, 2.3.B).
+exactly what cineFlow reads (2.2.D).
 
-## 5.8 Which flow method
+From here on flowQt is out of the picture. Point cineFlow at the
+folder holding your scenes, give it somewhere to write, and leave it
+alone:
 
-RAFT is the better estimator most of the time. It is not always the
-better choice, and the reason is worth knowing: where there is no
-correspondence at all, RAFT fills the gap with smooth, self-consistent
-flow that *passes* the geometric test — so bad data gets blended in
-with full confidence. DIS fails visibly in the same place, the test
-rejects it, and the input frame is left alone.
+```
+python cineFlow.py /path/to/scenes /path/to/output
+```
 
-| material | flow |
-|---|---|
-| normal scenes | RAFT |
-| fast small objects | DIS |
-| appearance changes (blinking lights, reflections) | DIS |
-| lens flares | DIS |
-| dirty material | dust mode, see chapter 7 |
-| dirt *and* fast motion | clean it up in the NLE first |
 
-## 5.9 How to be wrong
+## 5.8 How to be wrong
 
-Four mistakes that are easy to make and hard to notice:
-
-- **Judging at `Fit`.** The effect you are looking for is smaller than
-  a screen pixel at full-frame size.
-- **Judging grain on a still.** It is a temporal phenomenon; see 5.6.
-- **Judging detail on the mp4.** See 5.6, the other half.
-- **Forcing the black open.** Where the warped neighbour genuinely
-  went wrong, the trust map is *supposed* to reject it. Turning the
-  sliders until the map is white is how invented detail gets back into
-  the picture.
+- **Forcing the black open on the trust maps.** Where the warped
+  neighbour genuinely went wrong, the trust map is *supposed* to
+  reject it. Turning the sliders until the map is white is how
+  invented detail gets back into the picture.
+- **Working backwards.** Follow the data flow of the program; you get
+  faster results.
+- **Tuning on an easy frame.** It will look convincing everywhere
+  except where it matters.
 
 ---
 
-# 6. Export from your NLE
+# 6. The views in detail
+
+What each view shows, and what to look for in it. The ones in the
+default cycle come first, in cycle order; the rest are further down
+and can be brought in with the cycle editor (key `c`).
+
+## 6.1 Input
+
+The frame as it came off the film. Nothing computed here — no flow, no
+trust, no blending.
+
+This is the reference everything else is judged against, and it is
+available inside all other views through the split-view option.
+
+## 6.2 Output
+
+The most important view: this is the picture that goes to disk. The
+current mode appears in brackets — *Output (best)*, *Output (dustA)*.
+
+`Out` in the split box refers to the same thing, so you can put the
+final result beside any other view: a trust map on one side, what it
+did to the picture on the other.
+
+## 6.3 Neighbour (warped)
+
+One neighbour frame, shifted by the flow so that it should line up
+with the centre frame. This is where you see whether the flow worked:
+a correct warp is a second photograph of the same moment, so this view
+should look like `Input`. Smeared edges, doubled contours or something
+sitting in the wrong place mean the flow got it wrong there.
+
+Keys `n` and `m` pick which neighbour you are looking at; the label
+next to the slider says which one (`In+1`, `In-2`, …). This is the
+first view that makes use of them.
+
+![The neighbour selection slider](images/15-nbrslider.png)
+
+The neighbour offset is not limited by `context` — you can step past
+the blend window and see how far the flow still carries on this scene.
+5.3 says what to do with that.
+
+## 6.4 Neighbour × trust
+
+The same warped neighbour, multiplied by the trust it was given. This
+is what the neighbour actually contributes to the output: bright where
+it was accepted, black where it was rejected.
+
+Flip between this view and `Neighbour (warped)`. Everything that
+looked wrong over there must be black here — that is the gate doing
+its job. Large black patches come from geo, fine speckle from photo.
+
+> **Read the black with care.** The image is the neighbour *times* the
+> trust, so a dark area can mean two things: the trust rejected it, or
+> the picture is simply dark there. For the trust on its own, use
+> `Trust geo`, `Trust photo` and `Trust` (6.5, 6.6).
+
+## 6.5 Trust geo · Trust photo
+
+The two gates, one view each. White = full confidence, black = full
+doubt, grey everything in between.
+
+What the two test and how they differ is in 5.4.
+
+After a while you will set both faster on `Neighbour × trust`.
+
+## 6.6 Trust
+
+Everything geo and photo worked out, condensed into one number per
+pixel.
+
+`Neighbour × trust` answers "what did this one neighbour contribute";
+this one answers what the neighbourhood as a whole had to offer. White
+means the neighbours came through, dark means the frame is largely
+left to stand on its own — and will still be as grainy as it started.
+
+The current mode appears in brackets, and the map differs accordingly:
+in `best` the neighbour weights are geo × photo, in the dust modes
+geo × group consensus.
+
+## 6.7 Sharp gate
+
+The sharp gate is the interface between restoration and enhancement:
+it is what the Enhance stage is fed with. In practical use it is the
+most important display — but it takes a while to read.
+
+Read it like this: dark areas are not enhanced at all, bright areas
+are, either directionally with a Guided Filter or evenly with a
+classical unsharp mask, depending on the filter you chose.
+
+Its appearance is largely controlled by the sliders of the `texture`
+tab, `full` and `gamma` above all (7.3).
+
+## 6.8 Flow fw · Warped flow bw
+
+These are internal views. You do not need them for normal work, and
+nothing here is meant to be read like a picture.
+
+The flow is the program's attempt at working out what moved where
+between two frames. The forward view shows the estimate from the
+centre frame to the neighbour, the warped backward view the estimate
+in the other direction, brought into the same coordinates. In a
+perfect world the two would agree.
+
+The motion is drawn in colour: the hue gives the direction, the
+brightness the amount. Which hue means which direction does not matter
+much in practice — what you look at is whether neighbouring areas
+share a colour or break up into a patchwork.
+
+That is the recipe: flip between them. Whatever stays put is an
+estimate the program can rely on. Whatever jumps as you switch is a
+place where the two directions disagree — and that is exactly where
+the geo gate will reject the neighbour.
+
+Both come in an absolute and a relative variant. The relative ones
+subtract the dominant motion and show what is left over, which makes
+small local movement visible under a camera pan; the absolute ones
+show the full motion including the pan.
+
+## 6.9 Texture weight
+
+Displays where the Enhance stage *would* work, judged on image
+structure alone. Bright means "there is fine structure here worth
+lifting", dark means "this is smooth, leave it alone". Controlled
+entirely by the `texture` tab.
+
+Its use is the comparison with `Sharp gate`, which is this map
+multiplied by `Trust`:
+
+- dark in both → your texture threshold rejected the area.
+- bright here, dark in the gate → the structure is there, but the
+  blend was not trusted enough to sharpen it.
+
+That is the difference between turning the texture settings and fixing
+the trust, and it is the only place you can tell the two apart.
+
+---
+
+
+---
+# 7. The settings in detail
+
+Every setting in the right-hand panel, top to bottom — the order in
+which you meet them, and roughly the order in which you touch them.
+
+Each one belongs to a step from 3.2 ("The four steps"). Note that
+**step 3, the fusion, has no settings of its own**: it is steered
+entirely through the trust maps of step 2. If you are looking for a
+blend control, that is why there is none.
+
+A double-click on a slider puts it back to its default; `d` puts all
+of them back at once.
+
+## 7.1 Engine
+
+Two flow estimators are implemented, in flowQt as well as in cineFlow.
+
+RAFT is a neural-network based algorithm and it needs the appropriate hardware
+and support libraries to run. DIS is an OpenCV algorithm that runs on the CPU at comparable speed. Other optical flow algorithms were tested, with mixed
+results. They are no longer available in the present version of the programs.
+
+### 7.1.A `flow` — RAFT / DIS
+
+Selects which optical-flow estimator computes the motion between
+frames. Default RAFT. Key `r` toggles between RAFT and DIS.
+
+> **Note:** if RAFT is not available, DIS stands in for it. So you can
+> work out your settings on a small machine without a GPU and run the
+> batch later on one that has the hardware for it. The settings
+> transfer, but the result will not be identical — the two estimators
+> fail in different places.
+
+### 7.1.B `mode` — best / dustA / dustB
+
+Defaults to `best`, which is the degraining mode. `dustA` and `dustB`
+additionally go after dust and small damage; they are useful, but have
+had far less attention than the degraining, so expect to do more of
+the work by hand there. Chapter 9 covers them.
+
+In the two dust modes the `photo` sliders lose their effect and are
+greyed out, and `Trust`, `Sharp gate` and `Output` carry the mode in
+their title.
+
+### 7.1.C `downscale`
+
+A *divisor* of the flow input, not a scale: 2.0 means half the edge
+length, 1.2 means 83 %, 1.0 would be full resolution. Cost grows
+*quadratically* — going from 2.0 to 1.2 is about 2.8× the pixels.
+
+The larger the value, the smoother the flow field: less grain for the
+estimator to lock onto, but also less structure for it to follow.
+Small, fast-moving detail is the first thing to go.
+
+There is a lower bound, and it depends on the backend. RAFT works
+within a fixed pixel budget, so at a given scan size it cannot go
+below a certain value — at 1800 × 1350 that is about 1.2. flowQt
+enforces this: it raises the slider by itself and says so in the
+status bar. DIS runs on the CPU and allows 1.0 at any size.
+
+### 7.1.D `context`
+
+How many neighbour frames on each side enter the blend. Each one costs
+two flow calls, so cost grows linearly — while the benefit grows only
+with √N.
+
+How to find the right value for a scene: see 5.3 ("How many neighbours
+are worth having").
+
+## 7.2 Trust
+
+Each tab has the same two controls, and they always mean the same
+thing. **mismatch** is the threshold: how much error is still
+acceptable, or more precisely the error at which trust has fallen to
+0.5. **softness** decides whether the transition from accepted to
+rejected is abrupt or gradual.
+
+Only the unit changes:
+
+### 7.2.A geo tab — `mismatch` [px] · `softness`
+
+Measured in real pixels: the forward-backward inconsistency of the
+flow. Follow the motion there and back again — how far from the
+starting point do you land?
+
+Judged on `Trust geo`, or faster on `Neighbour × trust`, where geo
+failures show as *large connected patches*.
+
+Values between 1.0 and 4.0 px cover most material.
+
+### 7.2.B photo tab — `mismatch` [0..1] · `softness` · `smooth` [px]
+
+`mismatch` is the allowed difference in normalised image intensities,
+measured after smoothing over `smooth` pixels. That smoothing is what
+keeps the test from reacting to grain — which differs between every
+pair of frames by construction, and would otherwise fail the test
+everywhere.
+
+Photo failures show as *fine speckle* on `Neighbour × trust`. Speckle
+everywhere means the threshold is too tight for material this grainy.
+
+These settings have no effect in the dust modes.
+
+### 7.2.C dustA tab — `mismatch` [MAD] · `softness` · `center_weight`
+
+Only active in `dustA`. Measured in multiples of the MAD — the spread
+within the group of frames. A pixel that sits `mismatch` MADs away
+from the group median is no longer trusted.
+
+`center_weight` is how many votes the input frame gets in that group.
+It balances dust removal against fast-moving objects: the more weight
+the centre frame carries, the less readily the group can outvote it.
+Normal value is 1.
+
+### 7.2.D dustB tab — `mismatch` [spread] · `softness` · `disagreement` · `disagreement softness`
+
+Only active in `dustB`. Same curve as dustA, but the spread comes from
+a committee that *excludes* the input frame — which is what lets it
+judge the input frame at all.
+
+`disagreement` is a second gate on the committee itself: where the
+neighbours do not agree among themselves, their verdict on the input
+frame is worthless and is not acted on. Its effect is hard to see, and
+no material has turned up so far where moving this slider made a
+visible difference. It is there because the case exists, not because
+you will need it.
+
+## 7.3 Enhance
+
+The `Enhance` box steers step 4 ("Enhance") of 3.2.
+
+### 7.3.A `amount`
+
+The master control of the stage: at 0 it is switched off, useful
+values are roughly between 1.5 and 4.0. 2.2 ("One slider to rule them
+all") walks through it at 0, at maximum, and in between; 5.5 ("Enhance
+last") says what to judge it by.
+
+### 7.3.B texture tab — `full` · `gamma` · `base`
+
+These three decide where the Enhance stage does its work. They shape
+`Sharp gate`, the map that steers the whole stage: bright where
+structure gets lifted, dark where nothing happens.
+
+- **full** — how much local structure it takes to get the full
+  treatment. Lower means more of the picture counts as structure.
+- **gamma** — the curvature in between. Above 1 the middle is pushed
+  down, so only clear structure is lifted and the doubtful cases are
+  held back.
+- **base** — the floor. What a completely smooth area still gets.
+  Raise it and you sharpen everywhere, including the grain.
+
+Set these while watching `Sharp gate` (6.7).
+
+### 7.3.C filter tab — guided / gauss · `sigma` · `eps`
+
+This tab defines the base filter of the Enhance process. Two are
+available: a classical unsharp filter (here called `gauss`) and a
+directional one (`guided`). Your usual choice should be `guided`.
+
+- **sigma** — the size of the structure being lifted, in pixels.
+- **eps** — for the guided filter only: how strongly it distinguishes
+  an edge from a flat area.
+
+
+## 7.4 Slots
+
+Six memories for complete parameter sets — everything a recipe holds,
+kept inside flowQt rather than next to your material.
+
+![The slot buttons](images/Screenshot_2026-08-13_125143.png)
+
+- **Left click** loads a slot.
+- **Right click** stores the current settings in it.
+- **Shift + right** clears it, after asking.
+- **Ctrl + right** attaches a short note, which then shows up in the
+  tooltip along with the main values.
+
+A slot that holds something carries a `●` behind its name, and it
+lights up when its contents match what you have set right now. That is
+worth watching: it tells you at a glance whether you are still on a
+stored set or have drifted away from it.
+
+`Default` (key `d`) restores the factory settings and behaves like a
+slot in every other respect. A double-click on a single slider resets
+just that one.
+
+Slots survive restarts and are independent of the material you happen
+to have open — they are for the settings you keep coming back to.
+
+> **Note:** **Save recipe** does the other half: it writes the current settings
+next to your material, where cineFlow reads them. The button changes
+colour as soon as your settings differ from what is stored there. Key
+`e`; 2.2.D covers the workflow.
+
+## 7.5 Autoplay and Record
+
+![The Autoplay | Record box](images/Screenshot_2026-08-13_125935.png)
+
+### 7.5.A Step, play / pause
+
+The two buttons run the scene backwards and forwards; `space` starts
+and stops a forward run. **Step** is how many frames each step
+advances — at 1 you see every frame, larger values move through the
+scene faster.
+
+During a run you can change the view with Up/Down or 1–9 without
+stopping it. However note: your modifications will be recorded.
+
+### 7.5.B REC — mp4 / tif
+
+Arms the recorder (key `u`) — nothing is written yet. Start a run and
+every frame it computes goes to disk, into a `_clips` folder next to
+your material.
+
+What lands there is what is on screen. Change the view during a run,
+switch the split on, drag the divider, move a slider — all of it goes
+into the clip. That can be exactly what you want for showing someone
+what a setting does, and it is a nuisance when you meant to record a
+clean result.
+
+The box beside it picks the format. Take **mp4** for a quick look,
+**tif** when the result has to survive. What the batch program writes
+instead is in 2.3.D.
+
+---
+
+# 8. Export from your NLE
 
 *At this point in time this chapter is only applicable to DaVinci
 Resolve. Other editing programs will have equivalent settings, but
@@ -845,7 +1227,7 @@ files. Getting them out of the NLE in a form cineFlow can use is
 mostly a matter of four settings, and one of them is easy to get
 wrong.
 
-## 6.1 The export settings
+## 8.1 The export settings
 
 In the Deliver page, set:
 
@@ -890,21 +1272,25 @@ Szene_2/Frame_00000072.tif
 next to `Szene_10`. That is expected; cineFlow sorts scene folders
 naturally and reads them in the right order.
 
-## 6.2 Coming back
+## 8.2 Coming back
 
 cineFlow writes another TIFF sequence, uncompressed, and keeps the
 filenames. Because the numbers are global timeline positions rather
 than per-scene counts, re-importing is unremarkable: every frame lands
-where it came from. Simply import the whole output folder into DaVinci.
+where it came from.
 
-All the scenes will appear in the media page. Sort them alphabetically, 
-for example in the Cut-Page, select them all (Ctrl-a) and drop them 
-onto the timeline. The data should appear in the same order as the 
-original, with all cuts preserved.
+Import the whole output folder into DaVinci — the one named after the
+run, with all the scenes inside it. Each scene folder is recognised as
+one clip, and the media pool will usually have them in the right order
+already.
+
+To be sure of it, go to the Cut page, sort the clips alphabetically,
+select them all (`Ctrl+A`) and drag them onto the timeline. They land
+in the order they were shot, with all the cuts where they were.
 
 ---
 
-# 7. Dust and scratches
+# 9. Dust and scratches
 
 The machinery built for grain has a second use. Instead of asking *is
 this neighbour consistent with the input frame* — which is what photo
@@ -920,276 +1306,32 @@ the consensus among the neighbours is formed. Which one suits your
 material is something you will have to find out yourself; this manual
 has nothing better to offer yet.
 
+In most material the result is barely distinguishable from `best`.
+What the dust modes cost you shows up only where the box below
+applies.
+
 > **What it cannot tell apart.** The method has no idea what dust
 > *is*. It knows only that something was there in one frame and in no
 > other. A light that blinks for a single frame looks exactly like
 > that — and will go the same way as the dirt. So will a spark, a
 > camera flash, and the one frame in which someone blinked.
 
-Here's an example - left is the input image, right the result of
-the dustA-mode.
+Here is an example — left the input, right the result of the dustA
+mode. The dust is gone, and with it the grain: the dust modes do not
+replace the degraining, they are the degraining with the question
+turned around.
 
 ![DustA Example](images/16-dustAExample.png)
 
 ---
 
 
-# Appendix A — The other views
-
-Chapter 4 covers the nine views in the cycle. Four more sit in the
-catalogue and can be brought in with the editor (key `c`). One of them,
-`Trust`, is described in 4.2.E because you will want it early; the
-other three are here.
-
-## A.1 Flow fw (HSV) · Warped flow bw (HSV)
-
-The flow is the program's attempt at a 3D analysis of the scene: what
-moved where between two frames. It is never exact.
-
-What these views are good for is not reading off motion, but spotting
-**where the flow was computed correctly and where it was not** — which
-takes some practice. Smooth, coherent areas are estimates the program
-can work with; shredded or wildly speckled ones are not.
-
-Two things to play with:
-
-- **downscale** — larger values give smoother maps as a rule.
-- **the flow method** — RAFT usually gives better estimates than DIS.
-
-The cycle holds the *relative* variants of these two, which subtract
-the dominant motion and show what is left. The absolute ones here show
-the full motion including the camera pan — which is what you want when
-you are judging the estimate itself rather than the residual.
-
-## A.2 Texture weight
-
-Displays where the sharpener *would* work, judged on structure alone. Bright
-means "there is fine structure here worth lifting", dark means "this
-is smooth, leave it alone". Controlled entirely by the `texture` tab.
-
-Its use is the comparison with `Sharp gate`, which is this map
-multiplied by `Trust`:
-
-- dark in both → your texture threshold rejected the area.
-- bright here, dark in the gate → the structure is there, but the
-  blend was not trusted enough to sharpen it.
-
-That is the difference between turning the texture settings and fixing
-the trust, and it is the only place you can tell the two apart.
-
----
-
-# Appendix B — The settings in detail
-
-Every setting in the right-hand panel, top to bottom — the order in
-which you meet them, and roughly the order in which you touch them.
-
-Each one belongs to a step from 3.2. Note that **step 3, the fusion,
-has no settings of its own**: it is steered entirely through the trust
-maps of step 2. If you are looking for a blend control, that is why
-there is none.
-
-Ranges and defaults below are what the program ships with. A
-double-click on a slider puts it back to its default; `d` puts all of
-them back at once.
-
-## B.1 Engine
-
-Two flow estimators are implemented, in flowQt as well as in cineFlow.
-
-RAFT is a neural-network based algorithm and it needs the appropriate hardware
-and support libraries to run. DIS is an OpenCV algorithm that runs on the CPU at comparable speed. Other optical flow algorithms were tested, with mixed 
-results. They are no longer available in the present version of the programs.
-
-### B.1.A flow — RAFT / DIS
-
-Selects which optical-flow estimator computes the motion between frames.
-Default RAFT. Key `r` toggles.
-
-Not a quality ranking. See 5.8 for the recipe table and the reason the
-slower, better estimator is sometimes the worse choice.
-
-> **Note:** if RAFT is not available, DIS stands in for it. This lets 
-> you to grade on a small PC without powerful GPU and transfer your files and
-> settings later on a more powerful machine with appropriate hardware.
-
-### B.1.B mode — best / dustA / dustB
-
-Default `best`. The dust modes are there because they are useful, but
-they have not been optimised yet.
-
-In the two dust modes the `photo` sliders lose their effect and are
-greyed out, and `Trust`, `Sharp gate` and `Output` carry the mode in
-their title.
-
-### B.1.C downscale
-
-Range 1.2 … 8.0, default **2.0**.
-
-A *divisor* of the flow input, not a scale: 2.0 means half the edge
-length, 1.2 means 83 %, 1.0 would be full resolution. Larger values
-mean a smaller image for the flow stage — less VRAM, less grain for
-the estimator to lock onto, and less structure for it to work with. 
-
-And less computing time:
-
-Cost grows *quadratically*: going from 2.0 to 1.2 is about 2.8× the
-pixels. The lower bound depends on the backend and the scan size — GPU
-flow is capped by VRAM, CPU flow allows 1.0.
-
-*(open: what values suit which scan resolution)*
-
-### B.1.D context
-
-Range ±1 … ±8, default **±1**.
-
-How many neighbour frames on each side enter the blend. Each one costs
-two flow calls, so cost grows linearly — while the benefit grows only
-with √N.
-
-How to find the right value for a scene: see 5.3.
-
-## B.2 Trust
-
-Each tab has the same two controls, and they always mean the same
-thing: **mismatch** is the threshold — the error at which trust has
-fallen to 0.5 — and **softness** is how sharply it falls off around
-that point. Only the unit changes:
-
-### B.2.A geo tab — mismatch [px] · softness
-
-mismatch 0.5 … 12.0, default **1.9**; softness 0.1 … 6.0, default
-**0.2**.
-
-Measured in real pixels: the forward-backward inconsistency of the
-flow. Follow the motion there and back again — how far from the
-starting point do you land? At `mismatch` px the neighbour is trusted
-half.
-
-Judged on `Trust geo`, or faster on `Neighbour × trust`, where geo
-failures show as *large connected patches*.
-
-### B.2.B photo tab — mismatch [0..1] · softness · smooth [px]
-
-mismatch 0.01 … 1.0, default **0.09**; softness 0.002 … 0.5, default
-**0.008**; smooth 1 … 15 px, default **3**.
-
-Measured in image values: how much the warped neighbour differs in
-brightness and appearance from the input frame, after smoothing over
-`smooth` pixels. That smoothing is what keeps the test from reacting
-to grain — which differs between every pair of frames by construction.
-
-Photo failures show as *fine speckle* on `Neighbour × trust`. If the
-speckle is everywhere, the threshold is too tight for material this
-grainy.
-
-Has no effect in the dust modes.
-
-### B.2.C dustA tab — mismatch [MAD] · softness · center_weight
-
-mismatch 0.5 … 10.0, default **3.0**; softness 0.1 … 5.0, default
-**1.5**; center_weight 1 … 8, default **1**.
-
-Only active in `dustA`. Measured in multiples of the MAD — the spread
-within the group of frames. A pixel that sits `mismatch` MADs away
-from the group median is trusted half.
-
-`center_weight` is how many votes the input frame gets in that group.
-Higher means the consensus stays closer to the input frame, so less is
-replaced.
-
-### B.2.D dustB tab — mismatch [spread] · softness · disagreement · disagreement softness
-
-mismatch 0.5 … 10.0, default **3.0**; softness 0.1 … 5.0, default
-**1.5**; disagreement default **0.02**, its softness **0.002**.
-
-Only active in `dustB`. Same curve as dustA, but the spread comes from
-a committee that *excludes* the input frame — which is what lets it
-judge the input frame at all.
-
-`disagreement` is a second gate on the committee itself: where the
-neighbours do not agree among themselves, their verdict on the input
-frame is worthless and is not acted on.
-
-## B.3 Enhance
-
-The enhance-box steers the enhancement step. 
-
-### B.3.A amount
-
-Default **3.0**. The master control of the whole second half; 2.2
-walks through it at 0, at maximum, and in between.
-
-### B.3.B texture tab — full · gamma · base
-
-full default **0.017**, gamma **1.5**, base **0.05**.
-
-These three shape `Texture weight` — the map of where there is fine
-structure worth lifting — and through it `Sharp gate`.
-
-- **full** — the amount of local structure at which the map reaches 1.
-  Lower means more of the picture counts as structure.
-- **gamma** — the curvature between `base` and 1. Above 1 the middle
-  is pushed down, so only clear structure gets the full treatment.
-- **base** — the floor. What a completely smooth area still gets.
-  Raise it and you sharpen everywhere, including the grain.
-
-Judged on `Texture weight` against `Sharp gate` — see A.2 for what
-their difference tells you.
-
-
-### B.3.C filter tab — guided / unsharp · sigma · eps
-
-filter default **guided**, sigma **0.5**, eps **0.01**. Key `g`
-toggles the filter.
-
-How the detail to be lifted is separated out. **guided** follows edges
-and so sharpens directionally; **unsharp** (gauss) is the classical,
-undirected variant.
-
-- **sigma** — the size of the structure being lifted, in pixels.
-- **eps** — for the guided filter only: how strongly it distinguishes
-  an edge from a flat area.
-
-
-## B.4 Slots and recipes
-
-Six memories for complete parameter sets. Left click loads, right
-click stores, `Shift`+right clears, `Ctrl`+right adds a note.
-
-`Default` (key `d`) restores the factory settings; a double-click on a
-single slider resets just that one.
-
-**Save recipe** writes `cineflow.json` next to your material, or
-`<name>_cineflow.json` beside a video file — the file cineFlow reads.
-The button changes colour as soon as your settings differ from what is
-stored. Key `e`. The workflow around it: 2.2.D and 2.3.B.
-
-## B.5 Autoplay and Record
-
-### B.5.A step size, play / pause
-
-`space` starts and stops a forward run; `x` and `y` run forward and
-back. During a run you can change the view with Up/Down or 1–9 without
-stopping it.
-
-### B.5.B REC — mp4 / ProRes / TIFF
-
-Arms the recorder (key `u`); the run then writes every frame it
-computes. Output lands next to your material in `_clips`.
-
-Pick **mp4** for a quick look at temporal behaviour (5.6), the other
-formats when the result has to survive. What the batch program writes
-instead is in 2.3.C.
-
----
-
-# Appendix C — Keyboard reference
+# Appendix — Keyboard reference
 
 The same list the program shows on `h`. If the two ever disagree,
 believe the program.
 
-## C.1 Navigation
+## A.1 Navigation
 
 | key | |
 |---|---|
@@ -1201,7 +1343,7 @@ believe the program.
 | `1` … `9` | select a view directly (the number is shown in the list) |
 | `n` / `m` | test neighbour, inward / outward |
 
-## C.2 View
+## A.2 View
 
 | key | |
 |---|---|
@@ -1218,7 +1360,7 @@ believe the program.
 
 Dropping a config `.json` on the canvas applies it.
 
-## C.3 Autoplay and recording
+## A.3 Autoplay and recording
 
 | key | |
 |---|---|
@@ -1229,7 +1371,7 @@ Dropping a config `.json` on the canvas applies it.
 During a run, `Up`/`Down` and `1`–`9` change the view **without**
 stopping it.
 
-## C.4 Parameters and files
+## A.4 Parameters and files
 
 | key | |
 |---|---|

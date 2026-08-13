@@ -407,14 +407,14 @@ VIDEO_CODECS = {
         "args": ["-c:v", "prores", "-profile:v", "4",
                  "-pix_fmt", "yuv444p10le", "-vendor", "apl0"],
         "ext": ".mov",
-        "note": "ProRes 4444, 'prores'-Encoder (NICHT prores_ks -- gemessen "
-                "schlechter). DaVinci liest es. Kostet 0.077 %.",
+        "note": "ProRes 4444, 'prores' encoder (NOT prores_ks -- measured "
+                "worse). DaVinci reads it. Costs 0.077 %.",
     },
     "prores4444xq": {
         "args": ["-c:v", "prores_ks", "-profile:v", "5",
                  "-pix_fmt", "yuv444p10le", "-vendor", "apl0"],
         "ext": ".mov",
-        "note": "ProRes 4444 XQ -- hoechste Stufe, groesser.",
+        "note": "ProRes 4444 XQ -- highest tier, larger files.",
     },
     "ffv1": {
         "args": ["-c:v", "ffv1", "-level", "3", "-pix_fmt", "gbrp16le"],
@@ -428,7 +428,7 @@ VIDEO_CODECS = {
         "ext": ".mp4",
         "note": "LOSSY: 8 bit, 4:2:0, possible DC shift. Viewing/sharing "
                 "format -- NOT meant for the roundtrip back into DaVinci. "
-                "Included deliberately (rdh), limits known.",
+                "Included deliberately, limits known.",
     },
 }
 
@@ -729,7 +729,7 @@ def build_pipeline(config):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type != "cuda":
         print(f"  [pipeline] WARNING: no CUDA GPU found -- running on CPU "
-              f"(extremely slow, only form Testen der Logik gedacht).")
+              f"(extremely slow, only meant for testing the logic).")
 
     weights = tv_of.Raft_Small_Weights.DEFAULT
     model = tv_of.raft_small(weights=weights).to(device).eval()
