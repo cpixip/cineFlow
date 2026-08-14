@@ -68,6 +68,31 @@ def scene_config_path(input_path, is_dir=None):
     base = os.path.splitext(input_path)[0]
     return f"{base}_cineflow.json"
 
+def imread_unicode(path, flags=None):
+    import cv2
+    if flags is None:
+        flags = cv2.IMREAD_UNCHANGED
+    try:
+        buf = np.fromfile(path, dtype=np.uint8)
+    except OSError:
+        return None
+    if buf.size == 0:
+        return None
+    return cv2.imdecode(buf, flags)
+
+def imwrite_unicode(path, img, params=None):
+    import cv2
+    ext = os.path.splitext(path)[1] or ".png"
+    ok, buf = cv2.imencode(ext, img, params or [])
+    if not ok:
+        return False
+    try:
+        with open(path, "wb") as fh:
+            fh.write(buf.tobytes())
+    except OSError:
+        return False
+    return True
+
 def numeric_sort_key(path):
     return [int(s) if s.isdigit() else s for s in re.split(r"(\d+)", path)]
 
@@ -223,10 +248,10 @@ def _imread_cv2(path, why):
     if reason not in _FALLBACK_WARNED:
         _FALLBACK_WARNED.add(reason)
         print(f"  [reader] WARNING: tifffile fails ({why}) -- "
-              f"falling back to cv2.imread")
+              f"falling back to cv2")
         print(f"  [reader]          first seen on {path}; further files with "
               f"the same cause are read the same way, silently")
-    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    img = imread_unicode(path, cv2.IMREAD_UNCHANGED)
     if img is None:
         raise RuntimeError(f"cannot read {path} with tifffile or cv2 "
                            f"-- damaged file?")

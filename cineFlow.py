@@ -203,7 +203,7 @@ def _read_sample_shape(f_path):
         img = tifffile.imread(f_path)
         return img.shape[:2]
     except Exception:
-        img = cv2.imread(f_path, cv2.IMREAD_UNCHANGED)
+        img = cineio.imread_unicode(f_path, cv2.IMREAD_UNCHANGED)
         return img.shape[:2] if img is not None else None
 
 def resolve_output_root(input_path, out_cli, config):

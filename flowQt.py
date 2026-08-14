@@ -68,7 +68,7 @@ else:
     os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH", None)
 
 from cineflow_defaults import SCENE_PARAMS, VERSION
-from cineio import scene_config_path, safe_name
+from cineio import scene_config_path, safe_name, imwrite_unicode
 
 _SCRIPT = os.path.basename(__file__)
 
@@ -1370,8 +1370,8 @@ class _TiffSeqWriter:
             with open(path, "wb") as fh:
                 self._tiff.imwrite(fh, rgb, compression=None, photometric="rgb")
         else:
-            cv2.imwrite(path, frame_bgr,
-                        [cv2.IMWRITE_TIFF_COMPRESSION, 1])
+            imwrite_unicode(path, frame_bgr,
+                            [cv2.IMWRITE_TIFF_COMPRESSION, 1])
 
     def release(self):
         pass
@@ -1436,7 +1436,8 @@ class AutoplayRecorder:
             "Recording format:\n"
             "mp4 = one video (18 fps, mp4v) -- fast, compressed.\n"
             "tif = folder clip_NNN/ with single TIFF frames --\n"
-            "      lossless, for visual comparison.")
+            "      lossless, for visual comparison (NoiseDiff reads\n"
+            "      the folder directly as a source).")
         lAP.addWidget(self.cb_rec_mode)
         return gAP
 
@@ -2685,7 +2686,10 @@ class Main(QMainWindow):
             while os.path.exists(p):
                 p = os.path.join(out, f"{tag}_{n}.png")
                 n += 1
-            cv2.imwrite(p, img)
+            if not imwrite_unicode(p, img):
+                self.statusBar().showMessage(
+                    f"could not write {p}", 8000)
+                return
             self.statusBar().showMessage(
                 f"saved: {os.path.basename(p)}", 6000)
         except Exception as e:
