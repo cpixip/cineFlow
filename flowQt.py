@@ -1436,8 +1436,7 @@ class AutoplayRecorder:
             "Recording format:\n"
             "mp4 = one video (18 fps, mp4v) -- fast, compressed.\n"
             "tif = folder clip_NNN/ with single TIFF frames --\n"
-            "      lossless, for visual comparison (NoiseDiff reads\n"
-            "      the folder directly as a source).")
+            "      lossless, for visual comparison.")
         lAP.addWidget(self.cb_rec_mode)
         return gAP
 
