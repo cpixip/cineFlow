@@ -160,6 +160,14 @@ first. If RAFT then fails with a message about `sm_...` or `no kernel
 image`, that is the answer: your card is newer than the build, and the
 preview channel is the fix.
 
+> **RAFT has an upper limit on frame size.** It works within a fixed
+> pixel budget, so the larger your scans, the higher `downscale` has to
+> go — flowQt raises the slider by itself and says so in the status
+> bar. That budget was measured on a card with 8 GB; on a smaller one
+> you may still run out of memory inside the allowed range. Then raise
+> `downscale` further, or switch to DIS, which runs on the CPU at any
+> size.
+
 ### 6.2 The weights
 
 Unlike DIS, which computes optical flow from first principles, RAFT is
@@ -266,15 +274,21 @@ and start from another.
 
 ## 9. What gets written where
 
+## 9. What gets written where
+
 cineFlow is deliberately quiet about your disk. It writes:
 
 - `flowQt_settings.json` — your view cycle and slots, next to the
   scripts.
 - `cineflow.json` — the recipe, next to your material, and only when
-  you press **Save recipe**.
+  you press **Save recipe**. Beside a video file it is called
+  `<name>_cineflow.json` instead.
 - whatever you record with **REC**, in a `_clips` folder next to your
   material.
+- whatever you capture with `p`, as a PNG in a `_snapshots` folder
+  next to your material.
 - the output of a batch run, in the output folder you name on the
-  command line.
+  command line, together with a `cineflow_run.json` recording the
+  numbers that produced it.
 
 Your original material is never touched.

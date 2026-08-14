@@ -58,11 +58,11 @@ batch produces.
 - **[INSTALL.md](INSTALL.md)** — installation, from a machine with no
   Python on it to a first batch run. Tested end to end on Linux Mint
   and on Windows, both natively and under WSL2.
-- **[MANUAL.md](MANUAL.md)** — the manual (first version, gaps marked).
+- **[MANUAL.md](MANUAL.md)** — the manual.
   Chapter 2 gets you a degrained clip in five minutes without
   understanding anything; everything after that is about doing it well.
 
-You need Python 3.11 or 3.12 and four packages; INSTALL.md has the
+You need Python 3.11 or newer and four packages; INSTALL.md has the
 details. Everything runs on the CPU; a CUDA GPU is optional and makes
 it a great deal faster.
 

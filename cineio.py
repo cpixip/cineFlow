@@ -16,6 +16,7 @@
 
 import json
 import os
+import re
 import subprocess
 import threading
 
@@ -66,6 +67,9 @@ def scene_config_path(input_path, is_dir=None):
         return os.path.join(input_path, SCENE_CONFIG_FILENAME)
     base = os.path.splitext(input_path)[0]
     return f"{base}_cineflow.json"
+
+def numeric_sort_key(path):
+    return [int(s) if s.isdigit() else s for s in re.split(r"(\d+)", path)]
 
 def safe_name(name):
     out = []

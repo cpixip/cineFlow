@@ -261,9 +261,13 @@ class FolderSource:
         import glob
         self.path = folder
         self.files = sorted(glob.glob(os.path.join(folder, "*.tif")) +
-                            glob.glob(os.path.join(folder, "*.tiff")))
+                            glob.glob(os.path.join(folder, "*.tiff")),
+                            key=cineio.numeric_sort_key)
         if not self.files:
-            raise ValueError(f"Keine TIFFs in {folder}")
+            raise ValueError(
+                f"no TIFF files in {folder} -- cineFlow reads "
+                f".tif/.tiff image sequences and .mov/.mkv/.mp4/.avi "
+                f"video files")
         self.height = self.width = None
         self._cache = {}
         self._order = []
@@ -564,7 +568,7 @@ def _ensure_raft(which):
             _raft_warned.add(which)
             print(f"[RAFT] not available ({which}) -- computing with DIS instead!")
             if _raft_import_error:
-                print(f"[RAFT]   Grund: {_raft_import_error}")
+                print(f"[RAFT]   reason: {_raft_import_error}")
         return None
     try:
         if which == "RAFT":

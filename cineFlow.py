@@ -177,7 +177,8 @@ def discover_scenes(input_path):
                 if f.lower().endswith(VIDEO_EXTS):
                     base = os.path.splitext(f)[0]
                     scenes.append(Scene("video_file", os.path.join(full, f),
-                                        base, os.path.join(entry, base)))
+                                        os.path.join(entry, base),
+                                        os.path.join(entry, base)))
 
     if not scenes:
         sys.exit(f"[{APP_TAG}] ERROR: in {input_path} neither TIFFs nor "
@@ -186,8 +187,7 @@ def discover_scenes(input_path):
     scenes.sort(key=lambda sc: _numeric_sort_key(sc.name))
     return scenes
 
-def _numeric_sort_key(path):
-    return [int(s) if s.isdigit() else s for s in re.split(r"(\d+)", path)]
+_numeric_sort_key = cineio.numeric_sort_key
 
 def list_tiffs(scene_dir):
     files = [os.path.join(scene_dir, f) for f in os.listdir(scene_dir)

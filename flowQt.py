@@ -1436,8 +1436,7 @@ class AutoplayRecorder:
             "Recording format:\n"
             "mp4 = one video (18 fps, mp4v) -- fast, compressed.\n"
             "tif = folder clip_NNN/ with single TIFF frames --\n"
-            "      lossless, for visual comparison (NoiseDiff reads\n"
-            "      the folder directly as a source).")
+            "      lossless, for visual comparison.")
         lAP.addWidget(self.cb_rec_mode)
         return gAP
 
@@ -2678,9 +2677,9 @@ class Main(QMainWindow):
             eff, _want = fcore.resolve_backend(self.cfg, None)
             tag = (f"f{self.idx+1:05d}_{key}"
                    f"_{eff}_{self.cfg.get('mode', 'best')}"
-                   f"_div{self.cfg['downscale']:g}"
-                   f"_br{self.cfg['context']}"
-                   f"_amt{self.cfg['sharp_amount']:g}")
+                   f"_sc{self.cfg['downscale']:g}"
+                   f"_ctx{self.cfg['context']}"
+                   f"_sx{self.cfg['sharp_amount']:g}")
             p = os.path.join(out, tag + ".png")
             n = 1
             while os.path.exists(p):
@@ -3507,7 +3506,7 @@ class Main(QMainWindow):
             self.st_texw.setText(f"Adaption {pct:.0f}%")
             self.st_texw.setToolTip(
                 self._tip_texw
-                + f"<br><br><b>Jetzt:</b> tex_w {twm:.3f}, base {base:.2f}")
+                + f"<br><br><b>Now:</b> tex_w {twm:.3f}, base {base:.2f}")
             self.st_texw.setStyleSheet(
                 (f"color:#ff7a45; font-weight:bold; {mono}") if not aktiv
                 else f"color:#8fb8d8; {mono}")
@@ -3592,7 +3591,7 @@ class Main(QMainWindow):
         dlg = QFileDialog(self, "Select a video file", self._start_dir())
         dlg.setFileMode(QFileDialog.ExistingFile)
         dlg.setOption(QFileDialog.DontUseNativeDialog, True)
-        dlg.setNameFilters([f"Video ({pat})", "Alle Dateien (*)"])
+        dlg.setNameFilters([f"Video ({pat})", "All files (*)"])
         dlg.setSidebarUrls(_sidebar_urls())
         if dlg.exec_() and dlg.selectedFiles():
             self._load_folder(dlg.selectedFiles()[0])
