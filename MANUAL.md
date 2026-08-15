@@ -646,6 +646,7 @@ depend on the modifier:
 |---|---|
 | Cursor-Left / Right | one frame back / ahead |
 | Shift + Cursor-Left / Right | 10 frames |
+| `PageUp` / `PageDown` | frame −10 / +10, like Shift + Left/Right |
 | Ctrl + Cursor-Left / Right | 100 frames |
 | Home / End | first / last frame of the scene |
 
@@ -828,9 +829,8 @@ Two settings have the largest influence. Start with the flow method:
 | dirt *and* fast motion | clean it up in the NLE first |
 
 Then **downscale**: larger values usually give smoother flow, at the
-cost of fine structure, and run faster. Note that RAFT has a limit
-here — at a given frame size it needs a certain minimum, and flowQt
-raises the slider to it by itself, with a note in the status bar.
+cost of fine structure, and run faster. RAFT has a lower bound here
+that depends on your scan size; 8.1.C has the details.
 
 The reason DIS is worth having at all is not accuracy. It runs on the
 CPU, so it is not bound by the VRAM limit and can work at `downscale`
@@ -1492,9 +1492,10 @@ into the clip. That can be exactly what you want for showing someone
 what a setting does, and it is a nuisance when you meant to record a
 clean result.
 
-The box beside it picks the format. Take **mp4** for a quick look,
-**tif** when the result has to survive. What the batch program writes
-instead is in 2.3.D.
+The box beside it picks the format. Take **mp4** for a quick look —
+written at 18 fps with the `mp4v` codec, which every player reads and
+nobody would archive — and **tif** when the result has to survive. The
+batch writes ProRes 4444 instead (2.3.D).
 
 ---
 
@@ -1624,6 +1625,7 @@ believe the program.
 |---|---|
 | `Left` / `Right` | frame ±1 |
 | `Shift` + `Left` / `Right` | frame ±10 |
+| `PageUp` / `PageDown` | frame −10 / +10, like Shift + Left/Right |
 | `Ctrl` + `Left` / `Right` | frame ±100 |
 | `Home` / `End` | first / last frame of the scene |
 | `Up` / `Down` | step through the views |

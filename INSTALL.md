@@ -162,13 +162,11 @@ first. If RAFT then fails with a message about `sm_...` or `no kernel
 image`, that is the answer: your card is newer than the build, and the
 preview channel is the fix.
 
-> **RAFT has an upper limit on frame size.** It works within a fixed
-> pixel budget, so the larger your scans, the higher `downscale` has to
-> go — flowQt raises the slider by itself and says so in the status
-> bar. That budget was measured on a card with 8 GB; on a smaller one
-> you may still run out of memory inside the allowed range. Then raise
-> `downscale` further, or switch to DIS, which runs on the CPU at any
-> size.
+> **RAFT works within a fixed pixel budget**, and that budget was
+> measured on a card with 8 GB. On a smaller one you may run out of
+> memory even at a setting the program allows — then raise `downscale`
+> further, or use DIS, which runs on the CPU at any size. What the
+> budget means for your scans is in 8.1.C of [MANUAL.md](MANUAL.md).
 
 ### 6.2 The weights
 
