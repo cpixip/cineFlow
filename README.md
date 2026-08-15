@@ -56,8 +56,7 @@ batch produces.
 ## Getting started
 
 - **[INSTALL.md](INSTALL.md)** — installation, from a machine with no
-  Python on it to a first batch run. Tested end to end on Linux Mint
-  and on Windows, both natively and under WSL2.
+  Python on it to a first batch run.
 - **[MANUAL.md](MANUAL.md)** — the manual.
   Chapter 2 gets you a degrained clip in five minutes without
   understanding anything; everything after that is about doing it well.
