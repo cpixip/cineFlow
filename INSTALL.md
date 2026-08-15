@@ -21,9 +21,11 @@ Three steps should get you going:
 
 ## 1. Python interpreter
 
-Try to use Python 3.11 or 3.12. Newer versions of Python tend to run ahead
-of PyTorch: the wheels for them arrive late, and for a recent graphics
-card you want the current ones.
+Python 3.11 or 3.12 are the safe choice. Newer versions tend to run
+ahead of PyTorch — the wheels for them arrive late, and for a recent
+graphics card you want the current ones — but that gap closes over
+time, and 3.13 works here today. If the version you have is newer than
+this document, try it; section 6 is where it would show.
 
 If you run something more elaborate — a portable distribution, conda,
 an IDE with its own interpreter — you know what you are doing and the
@@ -271,8 +273,6 @@ because they are wrong, but because it is easy to install in one shell
 and start from another.
 
 ---
-
-## 9. What gets written where
 
 ## 9. What gets written where
 
