@@ -1014,7 +1014,7 @@ def process_frame(idx, files, cfg, backend, active_view=None):
                 diag = _neighbor_diag(f0, fj_diag, cfg, backend,
                                       cache=flow_cache)
             else:
-                print(f"[neighbor] offset {off:+d} out of range "
+                print(f"[neighbour] offset {off:+d} out of range "
                       f"(frame {idx+1}/{n}) -- diagnostic views stay empty.")
 
     if diag is not None:

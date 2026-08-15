@@ -2,8 +2,6 @@
 
 ## Contents
 
-- [cineFlow — a tool set for degraining small-gauge film scans](#cineflow--a-tool-set-for-degraining-small-gauge-film-scans)
-  - [Contents](#contents)
 - [1. What is it?](#1-what-is-it)
 - [2. Simple Examples](#2-simple-examples)
   - [2.1 Degrained footage in less than 5 Minutes](#21-degrained-footage-in-less-than-5-minutes)
@@ -25,6 +23,7 @@
     - [2.3.E What else you get](#23e-what-else-you-get)
   - [2.4 The full quality, finally](#24-the-full-quality-finally)
     - [2.4.A How it goes](#24a-how-it-goes)
+    - [2.4.B How large should the scan be?](#24b-how-large-should-the-scan-be)
 - [3. Principle of operation](#3-principle-of-operation)
   - [3.1 Basic Concept](#31-basic-concept)
   - [3.2 The four steps](#32-the-four-steps)
@@ -69,7 +68,7 @@
   - [8.2 Trust](#82-trust)
     - [8.2.A geo tab — `mismatch` \[px\] · `softness`](#82a-geo-tab--mismatch-px--softness)
     - [8.2.B photo tab — `mismatch` \[0..1\] · `softness` · `smooth` \[px\]](#82b-photo-tab--mismatch-01--softness--smooth-px)
-    - [8.2.C dustA tab — `mismatch` \[MAD\] · `softness` · `center_weight`](#82c-dusta-tab--mismatch-mad--softness--center_weight)
+    - [8.2.C dustA tab — `mismatch` \[MAD\] · `softness` · `center\_weight`](#82c-dusta-tab--mismatch-mad--softness--center_weight)
     - [8.2.D dustB tab — `mismatch` \[spread\] · `softness` · `disagreement` · `disagreement softness`](#82d-dustb-tab--mismatch-spread--softness--disagreement--disagreement-softness)
   - [8.3 Enhance](#83-enhance)
     - [8.3.A `amount`](#83a-amount)
@@ -169,7 +168,9 @@ touch a single one in this section.
 
 Simply drag a video file onto the large area. That is the entire
 loading procedure. If your material sits as .tif frames in a single
-folder, drop that folder instead — flowQt accepts both.
+folder, drop that folder instead — flowQt accepts both. Under WSL2
+there is no drag and drop; the **Load Tif** and **Load Video** buttons
+do the same job.
 
 ![Opening via Drag-and_Drop](images/02-DragDrop.png)
 
@@ -522,6 +523,31 @@ layout is the one from 2.3.A: one folder per scene, TIFFs inside.
 > (NLE):** chapter 9 has a working recipe for DaVinci Resolve. Other
 > NLEs have not been tested yet.
 
+### 2.4.B How large should the scan be?
+
+Larger is not automatically better, and for this software it is often
+worse — larger frames cost time, and the extra pixels rarely carry
+anything the smaller ones did not.
+
+Super-8 has a ceiling, and it is lower than the format's reputation
+suggests. Kodachrome 25 resolves around 100 lp/mm on its own, but the
+film never works on its own: the zoom lenses of the period contribute
+their share, the pressure plate sits in the cartridge rather than in
+the camera, and at 18 fps every handheld pan adds motion blur. What
+comes out the far end of that chain is somewhere around 60 to 80
+lp/mm, and 80 is generous.
+
+An HD-sized frame — 1440 pixels across a 5.79 mm image — samples at
+about 62 lp/mm. That is not a compromise. It is the size of the thing
+being photographed.
+
+There is still a good reason to scan at 4K, and it has nothing to do
+with detail: an archival scan should record the physical state of the
+film, grain and all, whatever the picture underneath is worth.
+cineFlow does not sit there. It sits after the archive, in the chain
+that turns the recorded state into something an audience can watch —
+and for that, a scan around 1800 × 1350 is a comfortable working size.
+
 ---
 
 # 3. Principle of operation
@@ -647,9 +673,18 @@ Out of the box the view cycle holds nine views:
 | 9 | Sharp gate | and what does the sharpening make of it? |
 
 
-A view that is not in the view cycle
-cannot be called up at all — you add it first, in the `Cyclic View
-Editor` (key `c`). The catalogue holds more than the nine views above.
+Some views depend on which neighbour you are looking at — those carry
+a ◆ in the list. Keys `n` and `m` step through the neighbours, and the
+slider beside the view box does the same; the label shows which one
+(`In+1`, `In-2`, …). Offset 0 is skipped, since the frame is not its
+own neighbour. On views without a ◆ the slider is greyed out.
+
+A view that is not in the view cycle cannot be called up at all — you
+add it first, in the `Cyclic View Editor` (key `c`). The catalogue
+holds more than the nine views above. The same view may appear more
+than once, which is worth knowing if you work by flipping: put
+`Output` between two diagnostic maps and Up/Down always brings you
+back to the result.
 
 If you get lost, `2` brings you back to the output — as long as you
 have not rearranged the cycle.
@@ -660,6 +695,11 @@ Scroll wheel zooms around the pointer. `z` and `Shift+z` step through
 the fixed zoom levels (Fit, 1×, 2×, 4×, 8×) forward and backward. A
 double-click into the image toggles between `Fit` and the last level
 you were on. Click and drag moves the frame.
+
+`Fit` scales the frame to the window — enlarging it too, if there is
+room — and the number beside the selector tells you what scale that
+actually came out at. From `1×` on, the figure is image pixels per
+screen pixel, not a percentage.
 
 From 2× on the image is drawn unsmoothed — one image pixel becomes a
 block of screen pixels, and the grain shows as it is rather than being
@@ -711,7 +751,9 @@ The box next to it decides what the current view is compared against.
 Three references are available, and `k` steps through them:
 
 - **In** — the untouched input frame.
-- **Out** — the final result of the current mode.
+- **Out** — the final result of the current mode. Use it to hold an
+  intermediate view against what actually comes out: a trust map on
+  one side, the finished picture on the other.
 - **best** — the blend without dedusting. Only meaningful in the dust
   modes; it shows what the dedusting changed, in both directions
   (chapter 10). In mode `best` both sides are the same image, so the
@@ -892,7 +934,8 @@ step before. The first is what the neighbour averaging took away —
 negative is normal, that is the grain going. Strongly negative means
 structure went with it. The second is what the Enhance stage gave
 back, and it follows `amount` directly. The third is the result
-against the input frame.
+against the input frame; the two multiply, so 0.68 × 1.73 gives the
+1.18 of the third figure.
 
 It is not a quality measure: grain and detail are both high frequency,
 and this number does not tell them apart. It tells you what happened,
@@ -1111,13 +1154,20 @@ steps earlier.
 The status bar carries the measurement:
 
 ```
-Tex p90 0.047 vs full 0.049
+Adaption 39%    Tex p90 0.047 vs full 0.049
 ```
 
 `p90` is the 90th percentile of the texture across the frame: nine
 tenths of the picture is less textured than this. `full` is the
 control you set. Their relationship is the whole game, and 7.3 says
 what to do with it.
+
+**Adaption** is the short answer to the same question: how far up the
+curve the frame actually sits, from the floor (0 %) to full strength
+(100 %). High means the stage is following the texture — strong on
+structure, gentle on smooth areas. Roughly 30 to 90 % is a working
+range. Below that the curve is barely doing anything, and the display
+turns orange to say so.
 
 ## 7.2 The histogram
 
@@ -1167,7 +1217,8 @@ Where the trust is zero the gate is zero, whatever the floor says.
 
 **`full` far above the p90** (say 0.30 against 0.03): the curve never
 leaves its base, and almost nothing is enhanced. The stage runs and
-does nothing.
+does nothing. This is the one case the program flags by itself —
+Adaption drops towards zero and the display turns orange.
 
 **`full` far below the p90**, down among the grain: flat areas reach
 full strength, and grain gets lifted as though it were structure. This
@@ -1182,8 +1233,9 @@ around 0.4 to 0.5 do this without the result going noisy. It is a
 finishing touch, not a starting point.
 
 Which settings you end up with depends on the material and on taste.
-Fine-grained stock takes different numbers from a coarse one, and what
-looks right on a screen is not what looks right projected.
+Fine-grained stock takes different numbers from a coarse one — K25
+against an AGFA emulsion is a noticeable step — and what looks right
+on a screen is not what looks right projected.
 
 ---
 
@@ -1215,11 +1267,13 @@ available in the present version of the programs.
 Selects which optical-flow estimator computes the motion between
 frames. Default RAFT. Key `r` toggles between RAFT and DIS.
 
-> **Note:** if RAFT is not available, DIS stands in for it. So you can
-> work out your settings on a small machine without a GPU and run the
-> batch later on one that has the hardware for it. The settings
-> transfer, but the result will not be identical — the two estimators
-> fail in different places.
+> **Note:** if RAFT is not available, DIS stands in for it. The
+> selector then turns orange and its tooltip says what is missing; the
+> preview computes with the other method while the recipe keeps what
+> you chose. That is the point: you can work out most settings on a
+> machine without a GPU and still write RAFT into the recipe for the
+> batch machine. The result will not be identical, though — the two
+> estimators fail in different places.
 
 ### 8.1.B `mode` — best / dustA / dustB
 
@@ -1250,9 +1304,10 @@ status bar. DIS runs on the CPU and allows 1.0 at any size.
 
 ### 8.1.D `context`
 
-How many neighbour frames on each side enter the blend. Each one costs
-two flow calls, so cost grows linearly — while the benefit grows only
-with √N.
+How many neighbour frames on each side are taken into account — for
+the fusion in `best`, for the committee in the dust modes. Each one
+costs two flow calls, so cost grows linearly, while the benefit grows
+only with √N.
 
 How to find the right value for a scene: see 5.3 ("How many neighbours
 are worth having").
@@ -1263,7 +1318,10 @@ Each tab has the same two controls, and they always mean the same
 thing. **mismatch** is the threshold: how much error is still
 acceptable, or more precisely the error at which trust has fallen to
 0.5. **softness** decides whether the transition from accepted to
-rejected is abrupt or gradual.
+rejected is abrupt or gradual. Smaller values are stricter.
+
+Tabs that do not apply to the current mode are greyed out, and their
+tooltip says which mode they belong to.
 
 Only the unit changes:
 
@@ -1286,6 +1344,11 @@ keeps the test from reacting to grain — which differs between every
 pair of frames by construction, and would otherwise fail the test
 everywhere.
 
+What the test catches are exposure and appearance changes at places
+where the geometry is perfectly correct — that is the division of
+labour between the two gates. A larger `smooth` also settles the map
+in time: the trust flickers less from frame to frame.
+
 Photo failures show as *fine speckle* on `Neighbour × trust`. Speckle
 everywhere means the threshold is too tight for material this grainy.
 
@@ -1306,7 +1369,8 @@ Normal value is 1.
 
 Only active in `dustB`. Same curve as dustA, but the spread comes from
 a committee that *excludes* the input frame — which is what lets it
-judge the input frame at all.
+judge the input frame at all, and means a defect sitting *on* the
+input frame can be caught too.
 
 `disagreement` is a second gate on the committee itself: where the
 neighbours do not agree among themselves, their verdict on the input
@@ -1321,8 +1385,9 @@ The `Enhance` box steers step 4 ("Enhance") of 3.2.
 
 ### 8.3.A `amount`
 
-The master control of the stage: at 0 it is switched off, useful
-values are roughly between 1.5 and 4.0. 2.2 ("One slider to rule them
+The master control of the stage: at 0 the stage is skipped entirely,
+not merely set to no effect. Useful values are roughly between 1.5 and
+4.0. 2.2 ("One slider to rule them
 all") walks through it at 0, at maximum, and in between; 5.5 ("Enhance
 last") says what to judge it by.
 
@@ -1344,9 +1409,17 @@ directional one (`guided`). Your usual choice should be `guided`. Key
 `g` toggles between them.
 
 - **sigma** — the size of the structure being lifted, in pixels. With
-  `gauss` it is the frequency cutoff instead.
+  `gauss` it is the frequency cutoff instead. Match it to the finest
+  real detail you want to keep: at 268 px/mm the finest thing the film
+  holds is about 3 px across, and `sigma` 0.5 puts the cutoff right
+  there. Work out the equivalent for your own scan.
 - **eps** — for the guided filter only: how strongly it distinguishes
-  an edge from a flat area. With `gauss` it has no effect.
+  an edge from a flat area. Small (0.01) is strongly edge-preserving;
+  above 0.1 it approaches a box filter and loses exactly the property
+  `guided` was chosen for. With `gauss` it has no effect.
+
+Set `sigma` first and leave it: it also fixes the window the guided
+filter works in, and therefore what `eps` is measured against.
 
 
 ## 8.4 Slots
@@ -1371,6 +1444,14 @@ stored set or have drifted away from it.
 slot in every other respect. A double-click on a single slider resets
 just that one.
 
+**Load …** reads a recipe from a file: a `cineflow.json`, or the
+`cineflow_run.json` that a batch run leaves beside its output — so the
+settings of a finished run can be picked up and carried on with. It
+takes only the parameters it knows; anything else in the file is
+ignored, and whatever the file does not mention stays as it is. That
+is deliberately more forgiving than the batch, which stops on keys it
+does not recognise.
+
 Slots survive restarts and are independent of the material you happen
 to have open — they are for the settings you keep coming back to.
 
@@ -1385,10 +1466,14 @@ to have open — they are for the settings you keep coming back to.
 
 ### 8.5.A Step, play / pause
 
-The two buttons run the scene backwards and forwards; `space` starts
-and stops a forward run. **Step** is how many frames each step
-advances — at 1 you see every frame, larger values move through the
-scene faster.
+The two buttons run the scene backwards and forwards; `y` and `x` do
+the same from the keyboard, and `space` starts and stops a forward
+run. Pressing again stops it.
+
+**Step** is how many frames each step advances, from a fixed list: 1,
+2, 5, 10, 20, 50, 100, 200. At 1 you see every frame, which is the
+setting for judging grain; larger values move through the scene
+faster.
 
 During a run you can change the view with Up/Down or 1–9 without
 stopping it. However note: your modifications will be recorded.
@@ -1397,7 +1482,9 @@ stopping it. However note: your modifications will be recorded.
 
 Arms the recorder (key `u`) — nothing is written yet. Start a run and
 every frame it computes goes to disk, into a `_clips` folder next to
-your material.
+your material: `<scene>/_clips/clip_NNN.mp4` for video, or a folder
+`<scene>/_clips/clip_NNN/` of single TIFF frames, numbered in the
+layout cineFlow itself uses.
 
 What lands there is what is on screen. Change the view during a run,
 switch the split on, drag the divider, move a slider — all of it goes
@@ -1500,9 +1587,12 @@ frame or two.
 There are two modes for it, `dustA` and `dustB`. They differ in how
 the consensus among the neighbours is formed: in `dustA` the input
 frame is a member of the committee that judges it, in `dustB` it is
-not. `dustA` is generally the slightly better performer; `dustB` is
-the alternative for scenes where A removes too much. Which one suits
-your material is something you will have to try.
+not. Excluding it has a second effect — where the neighbours disagree
+among themselves, the input frame is left alone, which protects it
+exactly where the flow estimator is struggling. `dustA` is generally
+the slightly better performer; `dustB` is the alternative for scenes
+where A removes too much. Which one suits your material is something
+you will have to try.
 
 In most material the result is barely distinguishable from `best`.
 

@@ -1927,23 +1927,23 @@ class Main(QMainWindow):
             "Forward-backward inconsistency of the flow, in px, at which\n"
             "trust drops to 0.5. A neighbour that lands more than this many\n"
             "pixels off the round-trip is distrusted.\n"
-            "Smaller = stricter. Normalised: error 0 -> trust 1.",
+            "Smaller = stricter.",
         "pho":
             "Smoothed brightness difference at which trust drops to 0.5.\n"
             "Catches exposure and appearance changes where the geometry\n"
             "is still correct.\n"
-            "Smaller = stricter. Normalised: error 0 -> trust 1.",
+            "Smaller = stricter.",
         "dustA":
             "Deviation from the group median, in MAD, at which trust drops\n"
             "to 0.5. Flags a neighbour whose contribution sits far outside\n"
             "the committee -- the classic dust/scratch case.\n"
-            "Smaller = stricter. Normalised: error 0 -> trust 1.",
+            "Smaller = stricter.",
         "dustB":
             "Residual against the committee spread, at which trust drops to\n"
             "0.5. The committee EXCLUDES the input frame.\n\n"
             "Unlike dustA, the input frame is judged against its neighbours\n"
             "only -- so a defect ON the input frame can be caught too.\n"
-            "Smaller = stricter. Normalised: error 0 -> trust 1.",
+            "Smaller = stricter.",
     }
     _TRUST_SOFTNESS_TIP = {
         "dustB":
@@ -2010,9 +2010,9 @@ class Main(QMainWindow):
                     "no matter how large the residual -- that is the\n"
                     "fast-motion case where the flow estimator, not the film,\n"
                     "is at fault.\n"
-                    "Smaller = trust the committee less often. Too low and\n"
-                    "fast motion smears; too high and real dust survives --\n"
-                    "set it by watching the result, not a number.")
+                    "In practice its effect is hard to see. It is there\n"
+                    "because the case exists, not because you will often\n"
+                    "need it.")
             self._p_d2_disp_s = self._mk_param(
                 "dustB_disagreement_softness", "softness [0..1]", 0.00005, 0.1, 0.00005, 5,
                 log=True, expensive=True,
@@ -2296,8 +2296,8 @@ class Main(QMainWindow):
         self.st_tex = QLabel("")
         self.st_tex.setStyleSheet(f"color:#8fb8d8; {mono}")
         self.st_tex.setToolTip(
-            "<b>Tex p90 vs. ref</b> \u2014 the measured texture of the "
-            "material (p90) against the configured reference ('full').<br><br>"
+            "<b>Tex p90 vs full</b> \u2014 the measured texture of the "
+            "material (p90) against the reference you set ('full').<br><br>"
             "When 'full' sits close to the p90, most of the image is "
             "processed adaptively. Set it far above (e.g. 0.30 against 0.03) "
             "and the curve stays near its base \u2014 almost nothing gets "
@@ -2312,13 +2312,14 @@ class Main(QMainWindow):
         self.st_trust.setToolTip(
             "<b>Trust by distance</b> \u2014 how much a neighbour at this "
             "distance still contributes on average (0\u20131).<br><br>"
-            "Read off how far the window is worth widening: if trust is "
-            "still high a few frames out (e.g. \u00b11:0.75, \u00b13:0.70), "
-            "every further neighbour pays in and a larger <b>context</b> "
-            "helps. If it has already fallen off close in (e.g. "
-            "\u00b11:0.60, \u00b13:0.25), the distant neighbours are "
-            "discarded anyway \u2014 \u00b15 buys flow calls and nothing "
-            "else.<br><br>"
+            "Typically the numbers hold a plateau and then fall away. "
+            "There is no point setting <b>context</b> beyond the point "
+            "where they drop: those neighbours add little and cost flow "
+            "calls all the same.<br><br>"
+            "How far the plateau reaches is a matter of the scene. With a "
+            "lot of movement even the immediate neighbour can come out "
+            "low; on a static scene the twentieth frame would still have "
+            "something to contribute.<br><br>"
             "<b>Remedy:</b> raise <b>context</b> only up to where trust "
             "stops paying in. Cost grows linearly, benefit only with "
             "\u221aN.")
@@ -2337,7 +2338,7 @@ class Main(QMainWindow):
             "<b>'amount'</b> directly.<br>"
             "<b>net</b>: result against the input frame. The two factors "
             "multiply.<br><br>"
-            "Only filled on the <b>Result</b> view \u2014 the diagnostic views "
+            "Only filled on the <b>Output</b> view \u2014 the diagnostic views "
             "have no blends at all, and the raw frame needs no balance.<br><br>"
             "<b>Not a quality measure.</b> Grain and detail are both high "
             "frequency \u2014 this number does not tell them apart. It shows "
@@ -2390,7 +2391,11 @@ class Main(QMainWindow):
             "Left: write the current recipe to the scene folder\n"
             "      (<scene>/cineflow.json) -- this is what cineFlow reads\n"
             "      on its own.\n"
-            "Right: save as \u2026 -- anywhere you like")
+            "Right: opens a save dialog, prefilled with that same path.\n"
+            "      Overtype name and place as you like. Named\n"
+            "      cineflow_folder.json in the folder you point cineFlow\n"
+            "      at, it applies to every scene below it; anywhere else,\n"
+            "      pass it with --config.")
         self.b_export.leftClicked.connect(self._export)
         self.b_export.rightClicked.connect(self._export_as)
         b_export = self.b_export
@@ -2439,7 +2444,7 @@ class Main(QMainWindow):
 
         self._p_radius = self._mk_int(
             "context", "context", 1, 8, expensive=True,
-            prefix="\u00b1", postfix="neighbors",
+            prefix="\u00b1", postfix="neighbours",
             tip="Window of attention: +-N neighbour frames considered before\n"
                 "fusion (best) or committee (dust). Each costs 2 flow calls --\n"
                 "cost grows linearly, benefit only with sqrt(N).")

@@ -15,8 +15,8 @@ frame. Film is the harder case it was built for.
 
 ## What it does
 
-cineFlow reads raw scanner output — or any other frame sequence — and
-examines each frame together with its neighbours in a sliding window.
+cineFlow reads frame sequences or video files. It examines each frame 
+of the source together with its neighbours in a sliding `context` window.
 Within that window it separates what is grain from what is genuine
 image content, and writes out the cleaned result.
 
