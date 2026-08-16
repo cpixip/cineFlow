@@ -165,8 +165,10 @@ preview channel is the fix.
 > **RAFT works within a fixed pixel budget**, and that budget was
 > measured on a card with 8 GB. On a smaller one you may run out of
 > memory even at a setting the program allows — then raise `downscale`
-> further, or use DIS, which runs on the CPU at any size. What the
-> budget means for your scans is in 8.1.C of [MANUAL.md](MANUAL.md).
+> further, or use DIS, which runs on the CPU at any size. With the
+> driver's default policy you may not get an error at all, just a run
+> that crawls — see 8.6. What the budget means for your scans is in
+> 8.1.C of [MANUAL.md](MANUAL.md).
 
 ### 6.2 The weights
 
@@ -269,6 +271,32 @@ Compare with where your packages went. Editors and distributions that
 bring their own Python are the usual reason for a mismatch — not
 because they are wrong, but because it is easy to install in one shell
 and start from another.
+
+### 8.6 A run slows to a crawl
+
+The symptom: a run that started at a sensible speed drops to a
+fraction of it after a few hundred frames. No error, the frame
+counter keeps advancing, the ETA climbs into the hours. Task Manager
+shows the GPU near 100 % with its memory nearly full, and a non-zero
+figure under *shared GPU memory*.
+
+That last number is the diagnosis. Since driver release 536 the
+NVIDIA driver no longer fails when CUDA runs out of video memory: it
+moves the allocation into system RAM instead. The run carries on over
+the PCIe bus — correct results, two to three orders of magnitude
+slower.
+
+Make it fail properly. In the NVIDIA control panel (or the NVIDIA
+app), under the 3D settings, set **CUDA — Sysmem Fallback Policy** to
+**Prefer No Sysmem Fallback**. A run that then exceeds the card stops
+within seconds with a CUDA out-of-memory error and says how much it
+asked for. The setting is global; if that gets in the way of other
+CUDA software, set it for `python.exe` alone under the per-program
+tab.
+
+Then give it less to hold: raise `downscale`, or lower `context`.
+`downscale` is the stronger lever, since cost grows quadratically.
+DIS is unaffected — it runs on the CPU.
 
 ---
 

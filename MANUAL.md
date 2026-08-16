@@ -52,7 +52,7 @@
   - [6.5 Trust geo · Trust photo](#65-trust-geo--trust-photo)
   - [6.6 Trust](#66-trust)
   - [6.7 Sharp gate](#67-sharp-gate)
-  - [6.8 Flow fw · Warped flow bw](#68-flow-fw--warped-flow-bw)
+  - [6.8 Flow fw · Warped flow bw · relative variants](#68-flow-fw--warped-flow-bw--relative-variants)
   - [6.9 Texture weight](#69-texture-weight)
 - [7. How the Enhance stage decides](#7-how-the-enhance-stage-decides)
   - [7.1 What is measured](#71-what-is-measured)
@@ -69,7 +69,7 @@
     - [8.2.A geo tab — `mismatch` \[px\] · `softness`](#82a-geo-tab--mismatch-px--softness)
     - [8.2.B photo tab — `mismatch` \[0..1\] · `softness` · `smooth` \[px\]](#82b-photo-tab--mismatch-01--softness--smooth-px)
     - [8.2.C dustA tab — `mismatch` \[MAD\] · `softness` · `center\_weight`](#82c-dusta-tab--mismatch-mad--softness--center_weight)
-    - [8.2.D dustB tab — `mismatch` \[spread\] · `softness` · `disagreement` · `disagreement softness`](#82d-dustb-tab--mismatch-spread--softness--disagreement--disagreement-softness)
+    - [8.2.D dustB tab — `mismatch` \[spread\] · `softness` · `disagreement` \[0..1\] · `softness` \[0..1\]](#82d-dustb-tab--mismatch-spread--softness--disagreement-01--softness-01)
   - [8.3 Enhance](#83-enhance)
     - [8.3.A `amount`](#83a-amount)
     - [8.3.B texture tab — `full` · `gamma` · `base`](#83b-texture-tab--full--gamma--base)
@@ -669,7 +669,7 @@ Out of the box the view cycle holds nine views:
 |---|---|---|
 | 1–2 | Input, Output | how is the restoration doing? |
 | 3–4 | Neighbour × trust, Neighbour (warped) | what actually went in? |
-| 5–6 | Flow fw rel, Warped flow bw rel | was the flow to blame? |
+| 5–6 | Flow fw relative, Warped flow bw relative | was the flow to blame? |
 | 7–8 | Trust geo, Trust photo | which of the two tests rejected it? |
 | 9 | Sharp gate | and what does the sharpening make of it? |
 
@@ -1079,7 +1079,7 @@ classical unsharp mask, depending on the filter you chose.
 Its appearance is largely controlled by the sliders of the `texture`
 tab, `full` and `gamma` above all (7.3).
 
-## 6.8 Flow fw · Warped flow bw
+## 6.8 Flow fw · Warped flow bw · relative variants
 
 These are internal views. You do not need them for normal work, and
 nothing here is meant to be read like a picture.
@@ -1103,12 +1103,18 @@ the geo gate will reject the neighbour.
 Both come in an absolute and a relative variant. The relative ones
 subtract the dominant motion and show what is left over, which makes
 small local movement visible under a camera pan; the absolute ones
-show the full motion including the pan.
+show the full motion including the pan. The view cycle carries the
+relative pair out of the box (4.2); the absolute ones are in the
+catalogue.
 
-All the flow views share one scale, so they are directly comparable:
-same colour means same direction, same brightness means same speed —
-forward against backward, and neighbours at any distance against each
-other.
+Within a variant the scale is shared, so those views are directly
+comparable: same colour means same direction, same brightness means
+same speed — forward against backward, and neighbours at any
+distance against each other, since the display divides by the
+neighbour offset. Absolute and relative do *not* share a scale.
+Comparing brightness across the two says nothing, because the
+relative pair shows only the residual after the dominant motion has
+been taken out.
 
 ## 6.9 Texture weight
 
@@ -1302,6 +1308,10 @@ below a certain value — at 1800 × 1350 that is about 1.2. flowQt
 enforces this: it raises the slider by itself and says so in the
 status bar. DIS runs on the CPU and allows 1.0 at any size.
 
+If a run slows to a crawl instead of failing, the card is out of
+memory and the driver is papering over it — see section 8.6 of
+[INSTALL.md](INSTALL.md).
+
 ### 8.1.D `context`
 
 How many neighbour frames on each side are taken into account — for
@@ -1365,7 +1375,7 @@ It balances dust removal against fast-moving objects: the more weight
 the centre frame carries, the less readily the group can outvote it.
 Normal value is 1.
 
-### 8.2.D dustB tab — `mismatch` [spread] · `softness` · `disagreement` · `disagreement softness`
+### 8.2.D dustB tab — `mismatch` [spread] · `softness` · `disagreement` [0..1] · `softness` [0..1]
 
 Only active in `dustB`. Same curve as dustA, but the spread comes from
 a committee that *excludes* the input frame — which is what lets it
