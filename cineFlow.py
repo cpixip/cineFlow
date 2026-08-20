@@ -217,7 +217,8 @@ def resolve_output_root(input_path, out_cli, config):
     return os.path.join(os.path.dirname(base), "Resultate")
 
 def estimate_output_bytes(scenes, config, output_format=None):
-    bit = int(config.get("output_bit_depth", 16))
+    bit = int(config.get("output_bit_depth",
+                         DEFAULT_CONFIG["output_bit_depth"]))
     fmt = (output_format or "tiff")
     total = 0
     sicher = True
@@ -776,7 +777,8 @@ class Pipeline:
         self.device = device
         self.config = config
         self.PF = torch_mod.nn.functional
-        self.raft_iters = int(config.get("raft_iterations", 6))
+        self.raft_iters = int(config.get(
+            "raft_iterations", DEFAULT_CONFIG["raft_iterations"]))
 
         self.downscale = float(config["downscale"])
         self.raft_fp16 = bool(config["raft_fp16"])

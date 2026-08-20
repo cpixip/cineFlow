@@ -616,11 +616,14 @@ def _raft_flow(model, rgb_from, rgb_to, cfg, cache=None, key_from=None, key_to=N
     prepped_to = prepare(rgb_to, key_to)
     dh, dw = prepped_from["h"], prepped_from["w"]
 
-    use_amp = bool(cfg.get("raft_fp16", True)) and _raft_device == "cuda"
+    use_amp = (bool(cfg.get("raft_fp16", DEFAULT_CONFIG["raft_fp16"]))
+               and _raft_device == "cuda")
     with torch.inference_mode():
         with torch.autocast(device_type="cuda", enabled=use_amp):
             flow = model(prepped_from["tensor"], prepped_to["tensor"],
-                         num_flow_updates=int(cfg.get("raft_iterations", 6)))[-1]
+                         num_flow_updates=int(cfg.get(
+                             "raft_iterations",
+                             DEFAULT_CONFIG["raft_iterations"])))[-1]
     flow = flow[0].float().permute(1, 2, 0).cpu().numpy()
     return flow[:dh, :dw].copy()
 
@@ -738,13 +741,18 @@ def _neighbor_diag(f0, fj, cfg, backend, cache=None):
     resid = flow_fwd + warped_flow_bw
     gtrust = geometric_trust(
         resid,
-        mismatch=float(cfg.get("geo_mismatch", 3.0)),
-        softness=float(cfg.get("geo_softness", 1.5)))
+        mismatch=float(cfg.get("geo_mismatch",
+                               DEFAULT_CONFIG["geo_mismatch"])),
+        softness=float(cfg.get("geo_softness",
+                               DEFAULT_CONFIG["geo_softness"])))
     ptrust = photometric_trust(
         warped_frame, f0,
-        mismatch=float(cfg.get("photo_mismatch", 0.1)),
-        radius=int(cfg.get("photo_radius", 3)),
-        softness=float(cfg.get("photo_softness", 0.025)))
+        mismatch=float(cfg.get("photo_mismatch",
+                               DEFAULT_CONFIG["photo_mismatch"])),
+        radius=int(cfg.get("photo_radius",
+                           DEFAULT_CONFIG["photo_radius"])),
+        softness=float(cfg.get("photo_softness",
+                               DEFAULT_CONFIG["photo_softness"])))
     ctrust = gtrust * ptrust
     return {
         "flow_fwd": flow_fwd, "flow_bwd": flow_bwd,
@@ -758,11 +766,11 @@ def _apply_trust_stage(data, cfg):
     if raw is None or f0 is None:
         return data
 
-    gd = float(cfg.get("geo_mismatch", 3.0))
-    gs = float(cfg.get("geo_softness", 1.5))
-    pd = float(cfg.get("photo_mismatch", 0.1))
-    prd = int(cfg.get("photo_radius", 3))
-    ps = float(cfg.get("photo_softness", 0.025))
+    gd = float(cfg.get("geo_mismatch", DEFAULT_CONFIG["geo_mismatch"]))
+    gs = float(cfg.get("geo_softness", DEFAULT_CONFIG["geo_softness"]))
+    pd = float(cfg.get("photo_mismatch", DEFAULT_CONFIG["photo_mismatch"]))
+    prd = int(cfg.get("photo_radius", DEFAULT_CONFIG["photo_radius"]))
+    ps = float(cfg.get("photo_softness", DEFAULT_CONFIG["photo_softness"]))
 
     trust_weighted = []
     offsets = []

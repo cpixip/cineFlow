@@ -3132,7 +3132,8 @@ class Main(QMainWindow):
             h, w = self.data["input"].shape[:2]
         lo = fcore.min_flow_div(key, w, h)
         p.set_lo(lo)
-        if float(self.cfg.get("downscale", 2.0)) < lo:
+        if float(self.cfg.get("downscale",
+                              fcore.DEFAULT_CONFIG["downscale"])) < lo:
             self.cfg["downscale"] = lo
             p.set_value(lo)
             self.statusBar().showMessage(

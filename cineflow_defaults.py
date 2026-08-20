@@ -39,11 +39,11 @@ DEFAULT_CONFIG = {
     "raft_fp16": True,
     "raft_iterations": 6,
 
-    "context": 1,
+    "context": 2,
     "geo_mismatch": 1.9,
-    "geo_softness": 0.2,
-    "photo_mismatch": 0.09,
-    "photo_softness": 0.008,
+    "geo_softness": 0.5,
+    "photo_mismatch": 0.055,
+    "photo_softness": 0.018,
     "photo_radius": 3,
 
     "center_weight": 1,
@@ -57,9 +57,9 @@ DEFAULT_CONFIG = {
     "dustB_disagreement_softness": 0.002,
 
     "sharp_base": 0.05,
-    "sharp_full": 0.017,
-    "sharp_gamma": 1.50,
-    "sharp_amount": 3.00,
+    "sharp_full": 0.034,
+    "sharp_gamma": 0.70,
+    "sharp_amount": 4.50,
     "detail_filter": "guided",
     "detail_sigma": 0.5,
     "detail_eps": 0.01,

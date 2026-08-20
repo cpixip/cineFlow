@@ -362,18 +362,18 @@ which DaVinci reads without complaint.
   USA_1981: video, ~1.15 GiB (rough estimate)
 
 [1/3] Szene_1  (tiff_dir)
-  [best] 69 frames, 1800x1350 (TIFF) | downscale=2.00 | context=+-1 (4 flow calls/frame)
+  [best] 69 frames, 1800x1350 (TIFF) | downscale=2.00 | context=+-2 (8 flow calls/frame)
   [best] -> /mnt/i/out/2026-08-09_1835/Szene_1
   [best] 100.0% | Frame 69/69 | 1.87 fps | ETA: 0:00:00
 
 [2/3] Szene_2  (tiff_dir)
-  [config] no cineflow.json -- using defaults (best, RAFT, context=+-1)
-  [best] 129 frames, 1800x1350 (TIFF) | downscale=2.00 | context=+-1 (4 flow calls/frame)
+  [config] no cineflow.json -- using defaults (best, RAFT, context=+-2)
+  [best] 129 frames, 1800x1350 (TIFF) | downscale=2.00 | context=+-2 (8 flow calls/frame)
   [best] -> /mnt/i/out/2026-08-09_1835/Szene_2
   [best] 100.0% | Frame 129/129 | 1.84 fps | ETA: 0:00:00
 
 [3/3] USA_1981  (video_file)
-  [best] 240 frames, 1440x1080 (Video) | downscale=2.00 | context=+-1 (4 flow calls/frame)
+  [best] 240 frames, 1440x1080 (Video) | downscale=2.00 | context=+-2 (8 flow calls/frame)
   [best] Codec: prores4444
   [best] -> /mnt/i/out/2026-08-09_1835/USA_1981.mov
   [best] 100.0% | Frame 240/240 | 2.31 fps | ETA: 0:00:00
@@ -417,7 +417,7 @@ one:
 
 1. **Nothing at all** — the built-in defaults are used, and cineFlow
    says so:
-   `[config] no cineflow.json -- using defaults (best, RAFT, context=+-1)`
+   `[config] no cineflow.json -- using defaults (best, RAFT, context=+-2)`
 2. **A `cineflow_folder.json` in the input folder** — applies to every
    scene in the run. This is the convenient route when most of your
    material should get the same treatment. cineFlow announces it in
