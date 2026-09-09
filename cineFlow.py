@@ -25,6 +25,7 @@ import os
 import re
 import shutil
 import sys
+import textwrap
 import time
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from queue import Queue, Empty, Full
@@ -214,16 +215,29 @@ def resolve_output_root(input_path, out_cli, config):
         return cfg_out
     in_p = os.path.abspath(input_path)
     base = os.path.dirname(in_p) if os.path.isfile(input_path) else in_p
-    return os.path.join(os.path.dirname(base), "Resultate")
+    return os.path.join(os.path.dirname(base), "results")
 
-def estimate_output_bytes(scenes, config, output_format=None):
+def _estimate_frame_count(st):
+    nb = st.get("nb_frames")
+    if nb and str(nb).isdigit() and int(nb) > 0:
+        return int(nb), True
+    try:
+        return int(float(st["duration"]) * cineio.video_fps(st)), False
+    except (KeyError, TypeError, ValueError):
+        return 0, False
+
+def estimate_output_bytes(scenes, config, output_format=None,
+                          video_codec=None):
     bit = int(config.get("output_bit_depth",
                          DEFAULT_CONFIG["output_bit_depth"]))
-    fmt = (output_format or "tiff")
+    bpp_video = VIDEO_CODECS[video_codec or DEFAULT_VIDEO_CODEC]["bpp"]
+    tiff_bpp = 3 * (2 if bit == 16 else 1)
     total = 0
-    sicher = True
+    exakt = True
     zeilen = []
     for sc in scenes:
+        fmt = output_format or ("tiff" if sc.kind == "tiff_dir" else "video")
+
         if sc.kind == "tiff_dir":
             try:
                 files = [os.path.join(sc.input_path, f)
@@ -239,25 +253,38 @@ def estimate_output_bytes(scenes, config, output_format=None):
                 zeilen.append(f"  {sc.name}: not readable -- skipped")
                 continue
             h, w = shape
-            raw = h * w * 3 * (2 if bit == 16 else 1)
-            gross = int(len(files) * raw * 1.01)
-            total += gross
-            zeilen.append(f"  {sc.name}: {len(files)} Frames, "
-                          f"~{gross/2**30:.2f} GiB")
+            n, n_exakt = len(files), True
         else:
             try:
-                ein = os.path.getsize(sc.input_path)
-            except OSError:
+                st = _ffprobe(sc.input_path)
+                h, w = int(st["height"]), int(st["width"])
+            except (ValueError, OSError, KeyError,
+                    subprocess.SubprocessError) as e:
+                zeilen.append(f"  {sc.name}: not probeable ({e}) -- skipped")
                 continue
-            gross = ein * (20 if fmt != "video" else 3)
-            total += gross
-            sicher = False
-            zeilen.append(f"  {sc.name}: video, ~{gross/2**30:.2f} GiB "
-                          f"(rough estimate)")
-    return total, sicher, zeilen
+            n, n_exakt = _estimate_frame_count(st)
+            if not n:
+                zeilen.append(f"  {sc.name}: frame count unknown -- skipped")
+                continue
+
+        if fmt == "video":
+            gross = int(n * h * w * bpp_video)
+            exakt = False
+            wie = f"{video_codec}, estimated"
+        else:
+            gross = int(n * h * w * tiff_bpp * 1.01)
+            wie = "TIFF"
+            if not n_exakt:
+                exakt = False
+        exakt = exakt and n_exakt
+        total += gross
+        zeilen.append(f"  {sc.name}: {n} frames{'' if n_exakt else ' (est.)'}"
+                      f", {wie}, ~{gross/2**30:.2f} GiB")
+    return total, exakt, zeilen
 
 def check_disk_space(scenes, config, output_root, output_format=None,
-                     reserve_frac=0.05, assume_yes=False):
+                     reserve_frac=0.05, assume_yes=False,
+                     video_codec=None):
     try:
         frei = shutil.disk_usage(output_root).free
     except OSError as e:
@@ -265,12 +292,12 @@ def check_disk_space(scenes, config, output_root, output_format=None,
               f"-- check skipped.")
         return True
 
-    noetig, sicher, zeilen = estimate_output_bytes(scenes, config,
-                                                   output_format)
+    noetig, exakt, zeilen = estimate_output_bytes(scenes, config,
+                                                  output_format, video_codec)
     noetig = int(noetig * (1.0 + reserve_frac))
     g = 2 ** 30
     print(f"[space] estimated need: {noetig/g:.2f} GiB"
-          f"{'' if sicher else ' (uncertain, video input)'}"
+          f"{'' if exakt else ' (estimate)'}"
           f" | free on {output_root}: {frei/g:.2f} GiB")
     for z in zeilen:
         print(z)
@@ -280,9 +307,9 @@ def check_disk_space(scenes, config, output_root, output_format=None,
 
     fehlt = (noetig - frei) / g
     print(f"[space] SHORT BY ~{fehlt:.2f} GiB.")
-    if not sicher:
-        print("  The estimate is crude for video input -- it can be off in "
-              "either direction.")
+    if not exakt:
+        print("  Compressed output is estimated from measured bytes per "
+              "pixel -- the real size depends on the material.")
     if assume_yes:
         print("  --yes given: the run starts anyway.")
         return True
@@ -294,7 +321,7 @@ def check_disk_space(scenes, config, output_root, output_format=None,
 
 def make_run_dir(output_root, tag=None):
     stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
-    name = f"{stamp}_{tag}" if tag else stamp
+    name = f"{stamp}_{safe_name(tag)}" if tag else stamp
     path = os.path.join(output_root, name)
     if os.path.exists(path):
         for i in range(2, 100):
@@ -408,30 +435,47 @@ VIDEO_CODECS = {
         "args": ["-c:v", "prores", "-profile:v", "4",
                  "-pix_fmt", "yuv444p10le", "-vendor", "apl0"],
         "ext": ".mov",
-        "note": "ProRes 4444, 'prores' encoder (NOT prores_ks -- measured "
-                "worse). DaVinci reads it. Costs 0.077 %.",
+        "bpp": 0.78,
+        "note": "10 bit 4:4:4, via RGB->YUV. For DaVinci versions older "
+                "than 19, which cannot read FFV1.",
     },
     "prores4444xq": {
         "args": ["-c:v", "prores_ks", "-profile:v", "5",
                  "-pix_fmt", "yuv444p10le", "-vendor", "apl0"],
         "ext": ".mov",
-        "note": "ProRes 4444 XQ -- highest tier, larger files.",
+        "bpp": 3.09,
+        "note": "As prores4444, higher bitrate. Larger files.",
     },
     "ffv1": {
         "args": ["-c:v", "ffv1", "-level", "3", "-pix_fmt", "gbrp16le"],
         "ext": ".mkv",
-        "note": "LOSSLESS (measured bit-identical). BUT: DaVinci does not "
-                "read FFV1 -- archival format, not an editing format.",
+        "bpp": 3.09,
+        "note": "16 bit RGB, lossless (measured bit-identical) -- the "
+                "quality choice, and the default. DaVinci reads it from "
+                "version 19 on.",
     },
     "h264": {
         "args": ["-c:v", "libx264", "-preset", "slow", "-crf", "14",
                  "-pix_fmt", "yuv420p"],
         "ext": ".mp4",
-        "note": "LOSSY: 8 bit, 4:2:0, possible DC shift. Viewing/sharing "
-                "format -- NOT meant for the roundtrip back into DaVinci. "
-                "Included deliberately, limits known.",
+        "bpp": 0.78,
+        "note": "8 bit 4:2:0, lossy -- expect slight color shifts. Quick "
+                "preview and sharing only.",
     },
 }
+
+DEFAULT_VIDEO_CODEC = "ffv1"
+
+def codec_table(width=78):
+    w = max(len(k) for k in VIDEO_CODECS)
+    out = ["video codecs:"]
+    for name in sorted(VIDEO_CODECS):
+        spec = VIDEO_CODECS[name]
+        head = f"  {name:<{w}}  {spec['ext']:<5} "
+        body = textwrap.wrap(spec["note"], max(20, width - len(head))) or [""]
+        out.append(head + body[0])
+        out += [" " * len(head) + ln for ln in body[1:]]
+    return "\n".join(out)
 
 _ffprobe = cineio.ffprobe
 _video_fps = cineio.video_fps
@@ -1253,7 +1297,7 @@ def _finish_run(out_dir, config, scene, st, n, total, fps):
             "runner": st}
 
 def run_copy(scene, config, run_dir, force_format=None,
-             video_codec="prores4444"):
+             video_codec=DEFAULT_VIDEO_CODEC):
     reader, writer, meta = open_scene_io(scene, config, run_dir,
                                          force_format, video_codec)
     if reader is None:
@@ -1284,9 +1328,10 @@ def run_copy(scene, config, run_dir, force_format=None,
             "seconds": total}
 
 def open_scene_io(scene, config, run_dir, force_format=None,
-                  video_codec="prores4444"):
+                  video_codec=DEFAULT_VIDEO_CODEC):
     fmt = force_format or ("video" if scene.kind == "video_file" else "tiff")
 
+    files = None
     if scene.kind == "video_file":
         try:
             reader = AsyncVideoReader(scene.input_path,
@@ -1313,7 +1358,9 @@ def open_scene_io(scene, config, run_dir, force_format=None,
                                  queue_size=config["reader_queue_size"],
                                  read_timeout=config["reader_timeout"],
                                  num_workers=config["reader_workers"])
-        src_meta = dict(fps=18.0, color_space="bt709", color_trc=None,
+        src_meta = dict(fps=float(config.get("tiff_fps",
+                                             DEFAULT_CONFIG["tiff_fps"])),
+                        color_space="bt709", color_trc=None,
                         color_prim=None, color_range="pc")
 
     if fmt == "video":
@@ -1328,7 +1375,7 @@ def open_scene_io(scene, config, run_dir, force_format=None,
                                   queue_size=config["writer_queue_size"])
     else:
         out = scene_output_dir(run_dir, scene)
-        frame_offset = source_frame_offset(files[0])
+        frame_offset = source_frame_offset(files[0]) if files else 0
         writer = AsyncWriter(out, prefix=scene.name,
                              bit_depth=config["output_bit_depth"],
                              queue_size=config["writer_queue_size"],
@@ -1342,7 +1389,7 @@ def open_scene_io(scene, config, run_dir, force_format=None,
                             "fmt": fmt, "codec": video_codec}
 
 def run_cpu_scene(scene, config, run_dir,
-                  force_format=None, video_codec="prores4444"):
+                  force_format=None, video_codec=DEFAULT_VIDEO_CODEC):
     import flowcore as fcore
 
     reader, writer, meta = open_scene_io(scene, config, run_dir,
@@ -1420,7 +1467,7 @@ def _run_cpu_body(scene, config, out_dir, source, writer, mode, n, eff, want):
     return _finish_run(out_dir, config, scene, st, n, total, wall_fps)
 
 def run_pipeline_scene(scene, config, run_dir, pipeline,
-                       force_format=None, video_codec="prores4444"):
+                       force_format=None, video_codec=DEFAULT_VIDEO_CODEC):
     reader, writer, meta = open_scene_io(scene, config, run_dir,
                                          force_format, video_codec)
     if reader is None:
@@ -1599,41 +1646,77 @@ def _print_summary(rows, elapsed, skipped=()):
                               for c, (_, w, al) in zip(tcells, COLS)))
     print(RULE)
 
+CONFIG_EPILOG = """
+config precedence (each level beats the previous):
+  1  built-in defaults
+  2  <input folder>/cineflow_folder.json
+  3  --config <file>
+  4  the scene's own recipe:  <scene>/cineflow.json    (TIFF folder)
+                              <scene>_cineflow.json    (video file)
+
+  Unknown keys abort -- at levels 2 and 3 the whole run before anything
+  is processed, at level 4 only that scene.
+"""
+
 def parse_cli(argv):
-    ap = argparse.ArgumentParser(description=f"{APP_TAG} -- batch processing")
-    ap.add_argument("input", help="Input path: video, TIFF folder, or "
-                                   "parent folder holding several scene sub-folders")
+    ap = argparse.ArgumentParser(
+        description=f"{APP_TAG} -- batch processing",
+        epilog=codec_table() + "\n" + CONFIG_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("input",
+                    help="Input: a video file, a folder of TIFFs, a folder "
+                         "of video files, or a parent folder holding such "
+                         "scenes (mixed is fine). Sub-folders are scanned "
+                         "ONE level deep.")
     ap.add_argument("output", nargs="?", default=None,
-                     help="Output root folder (optional, otherwise from config/default)")
-    ap.add_argument("--config", default=None,
-                    help="Global JSON config. Scene-local cineflow.json "
-                         "still overrides it.")
-    ap.add_argument("--video-codec", default="prores4444",
+                    help="Output ROOT folder -- each run writes into a "
+                         "timestamped sub-folder of it. Default: output_dir "
+                         "from the config, else a 'results' folder next to "
+                         "the input.")
+    ap.add_argument("--config", default=None, metavar="FILE",
+                    help="Global JSON config -- see 'config precedence' "
+                         "below.")
+    ap.add_argument("--video-codec", default=DEFAULT_VIDEO_CODEC,
                     choices=sorted(VIDEO_CODECS),
-                    help="Codec for video OUTPUT. prores4444 = DaVinci reads "
-                         "it, costs 0.077 %%. ffv1 = lossless, but DaVinci "
-                         "does NOT read it.")
+                    help="Codec for video OUTPUT (default: %(default)s). "
+                         "Applies only when a video is written, and it "
+                         "decides the file extension -- see the table "
+                         "below.")
     ap.add_argument("--video-range", default=None, choices=["pc", "tv"],
-                    help="Force the range of INPUT videos. pc = full "
-                         "(DaVinci: 'Data Levels: Full'), tv = limited. "
-                         "DaVinci does NOT tag the range -- without this "
-                         "option it is measured, and that can go wrong on "
-                         "flat material.")
+                    help="Force the range of INPUT videos -- overrides both "
+                         "the tag and the measurement. pc = full (DaVinci: "
+                         "'Data Levels: Full'), tv = limited. Untagged files "
+                         "are measured, and that can go wrong on flat (Log) "
+                         "material -- then say it here. No effect on TIFF "
+                         "input. With a YUV output codec the same value is "
+                         "written to the output file.")
     ap.add_argument("--output-format", default=None, choices=["tiff", "video"],
-                    help="Force the output format. Default: follows the input "
-                         "(TIFF dir -> TIFFs, video file -> video).")
+                    help="Force the output format. Default: follows the "
+                         "input (TIFF dir -> TIFFs, video file -> video). "
+                         "Forcing 'video' on TIFF input writes tiff_fps "
+                         "(default 18) -- there is no frame rate in a TIFF "
+                         "folder to read.")
     ap.add_argument("--yes", "-y", action="store_true",
-                    help="Answer prompts (e.g. not enough disk space) "
-                         "with yes -- for script/batch use where "
-                         "no input is possible.")
+                    help="Skip the one interactive question (not enough disk "
+                         "space) and start anyway. For scripts and batch "
+                         "runs -- without it a prompt that nobody can answer "
+                         "counts as 'no' and the run stops.")
     ap.add_argument("--tag", default=None,
-                    help="Descriptive suffix for the run directory, e.g. "
-                         "2026-07-12_1834_texref-sweep")
-    ap.add_argument("--force-config", default=None, metavar="JSON",
-                    help="FORCE this config -- scene-local cineflow.json files "
-                         "are IGNORED. For A/B tests of several parameter "
-                         "sets on the same frames -- no duplication needed, "
-                         "the output folders get a counter suffix anyway.")
+                    help="Descriptive suffix for the run directory -- the "
+                         "timestamp is prepended automatically. '--tag "
+                         "texref-sweep' gives 2026-07-12_1834_texref-sweep.")
+    ap.add_argument("--force-config", default=None, metavar="FILE",
+                    help="Use THIS config and IGNORE the scenes' own recipes "
+                         "(level 4 below). For A/B tests of several parameter "
+                         "sets on the same frames, without duplicating them "
+                         "-- give each run its own --tag to tell the results "
+                         "apart. Replaces --config; cineflow_folder.json "
+                         "still applies underneath.")
+
+    if not argv:
+        ap.print_help(sys.stderr)
+        sys.exit(2)
+
     return ap.parse_args(argv)
 
 def main(argv=None):
@@ -1648,17 +1731,15 @@ def main(argv=None):
     print(f"  {APP_TAG}")
     print(f"  input:   {args.input}")
     print(f"  output:  {output_root}")
-    if os.path.isfile(os.path.join(
-            args.input if os.path.isdir(args.input)
-            else os.path.dirname(args.input), FOLDER_CONFIG_FILENAME)):
+    if FOLDER_CONFIG_FILENAME in config["_config_sources"]:
         print(f"  config:  {FOLDER_CONFIG_FILENAME} (applies to every scene)")
     if forced:
-        print(f"  ERZWUNGENE Config: {args.force_config}")
-        print(f"  (scene-local {SCENE_CONFIG_FILENAME} files are IGNORED)")
+        print(f"  config:  FORCED -- {args.force_config}")
+        print("           (scene recipes are IGNORED)")
 
     if args.video_range:
         _FORCED_RANGE[0] = args.video_range
-        print(f"  Video-Range ERZWUNGEN: {args.video_range}")
+        print(f"  range:   FORCED -- {args.video_range}")
 
     run_dir = make_run_dir(output_root, args.tag)
     print(f"  run:     {os.path.basename(run_dir)}/")
@@ -1672,7 +1753,8 @@ def main(argv=None):
     print(f"[scenes] {len(scenes)} scene(s) found")
 
     if not check_disk_space(scenes, config, output_root,
-                            args.output_format, assume_yes=args.yes):
+                            args.output_format, assume_yes=args.yes,
+                            video_codec=args.video_codec):
         try:
             os.rmdir(run_dir)
         except OSError:

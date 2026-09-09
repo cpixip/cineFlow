@@ -24,6 +24,7 @@ DEFAULT_CONFIG = {
     "mode": "best",
     "output_dir": "",
     "output_bit_depth": 16,
+    "tiff_fps": 18.0,
     "tiff_compression": "none",
     "writer_queue_size": 150,
     "writer_timeout": 0.2,

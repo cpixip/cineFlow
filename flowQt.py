@@ -228,9 +228,9 @@ DEFAULT_CYCLE = [
     "nbr_warped_trust",
     "nbr_warped",
     "flow_fw_rel",
-    "warped_flow_bw_rel",
     "trust_geo",
     "trust_photo",
+    "trust_mean",
     "sharp_gate",
 ]
 
@@ -1772,7 +1772,7 @@ class Main(QMainWindow):
 
     def __init__(self, folder=None):
         super().__init__()
-        self.setWindowTitle(f"flowQt {__version__} -- cineFlow Parameter-Werkbank")
+        self.setWindowTitle(f"flowQt {__version__} -- cineFlow parameter workbench")
         self.resize(1500, 950)
 
         self.files = []
@@ -2305,7 +2305,7 @@ class Main(QMainWindow):
             "grain, and even flat areas reach full strength \u2014 that is "
             "where grain gets sharpened as if it were structure.<br><br>"
             "<b>Remedy:</b> bring 'full' close to the p90. The right value "
-            "depends on the material (fine K25 vs. coarse AGFA).")
+            "depends on the material (fine K40 vs. coarse Agfa).")
 
         self.st_trust = QLabel("")
         self.st_trust.setStyleSheet(f"color:#8fb8d8; {mono}")
@@ -2548,7 +2548,7 @@ class Main(QMainWindow):
                 "sweep eps).\n"
                 "gauss: frequency cutoff in pixels. Match it to the finest\n"
                 "real film detail you want to keep.\n\n"
-                "Example: at a scan resolution of 268 px/mm the finest real\n"
+                "Example: at a scan resolution of ~267 px/mm the finest real\n"
                 "film detail is about 3 px wide; sigma 0.5 puts the cutoff\n"
                 "right there. Work out the equivalent for your own scan\n"
                 "resolution.")
@@ -2933,6 +2933,10 @@ class Main(QMainWindow):
             if n > 1:
                 self.cb_backend.setCurrentIndex(
                     (self.cb_backend.currentIndex() + 1) % n)
+            else:
+                self.statusBar().showMessage(
+                    f"only one flow backend available "
+                    f"({self.cb_backend.itemText(0)})", 2000)
         elif k == Qt.Key_D:     self._reset_defaults()
         elif k == Qt.Key_E:     self._export()
         elif k == Qt.Key_C:     self._edit_cycle()
@@ -3056,21 +3060,23 @@ class Main(QMainWindow):
             ("Navigation", ""),
             ("Left / Right", "frame \u00b11"),
             ("Shift + Left/Right", "frame \u00b110"),
+            ("PageUp / PageDown", "frame \u221210 / +10"),
             ("Ctrl + Left/Right", "frame \u00b1100"),
             ("Home / End", "first / last frame of the scene"),
             ("Up / Down", "step through views"),
             ("1 \u2026 9", "select a view directly (number shown in the list)"),
-            ("n / m", "test neighbour \u2213 / \u00b1"),
+            ("n / m", "test neighbour, inward / outward"),
             ("", ""),
             ("View", ""),
             ("z / Shift+z", "zoom step up / down (Fit, 1x, 2x, 4x, 8x)"),
             ("Mouse wheel", "zoom around the pointer"),
             ("Click + drag", "pan"),
-            ("l", "split on/off"),
+            ("l", "split: off -> In | View -> View | In"),
             ("k", "split reference: In / Out / best"),
             ("", "  (what does the dedust cost: split on +"),
             ("", "   reference 'best', then drag the divider)"),
             ("", "  drop a config .json on the canvas to apply it"),
+            ("Esc", "leave the curve preview, back to the cycle"),
             ("t", "texture histogram overlay on/off"),
             ("g", "detail filter (guided/gauss)"),
             ("r", "Backend (RAFT/DIS)"),
@@ -3630,8 +3636,10 @@ class Main(QMainWindow):
         self.sld_frame.setValue(0)
         self._update_frame_label()
         tag = "Video" if src.kind == "video" else "Frames"
+        _hw0 = self._frame_size
+        _dim = f", {_hw0[1]}x{_hw0[0]}" if _hw0 else ""
         self.setWindowTitle(f"flowQt {__version__} -- {os.path.basename(d)}  "
-                            f"({len(src)} {tag}, {src.backend})")
+                            f"({len(src)} {tag}{_dim}, {src.backend})")
         self._settings[_DIR_KEY] = d
         _save_settings(self._settings)
 

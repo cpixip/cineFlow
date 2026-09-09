@@ -1,43 +1,45 @@
-# cineFlow — Degraining and Recovery
+# cineFlow — Restoring Small-Gauge Film
 
-In the old days of analog media, major efforts were made to reduce the 
-intrinsic film grain of the medium. Film grain covers image detail, 
-especially in darker areas of a frame.
-
-This software takes a fresh approach to removing film grain digitally,
-with the explicit goal of recovering as much of the original image
-detail as the material allows. The software was carefully designed
-not to "invent" spurious image detail.
-
-The same machinery should also work on noisy video — more easily,
-even, since the higher frame rate provides more usable samples per
-frame. Film is the harder case it was built for.
-
-## What it does
-
-cineFlow reads frame sequences or video files. It examines each frame 
-of the source together with its neighbours in a sliding `context` window.
-Within that window it separates what is grain from what is genuine
-image content, and writes out the cleaned result.
 
 ![flowQt with real data](images/19-flowQtInUse.png)
 
-A detail in a film almost never lives in a single frame — the camera
-exposed the same corner of the house, the same face, the same treetop
-two, five, twenty times. The grain fell differently on every exposure;
-the corner of the house did not.
+*flowQt — the interactive front end, working out the settings for a scene.*
 
-Follow a detail reliably across several frames, combine its signature
-from several samplings, and you end up with something that *was* in
-the film but was never cleanly visible in any one frame. The world in
-front of the camera was stable; only the grain was not.
+This software development started with a specific challenge: in 1981, about 20 rolls of Kodachrome 40 
+film stock were exposed. They were stored in an attic for over a year before they were finally
+developed. 
 
-Every neighbouring frame is checked before it is used: is the motion
-consistent, does the pixel still look like it belongs, does it disagree
-with what the others agree on? Where the answers are bad, the neighbour
-is discarded and the original frame stands. An area the software is
-unsure about stays as grainy as it was. That is sometimes
-unsatisfying — it is always honest.
+While Kodachrome 40 was one of the best film stocks one 
+could choose at that time, the long delay between exposure
+and development created a unique film look with increased film grain. In fact, in darker parts of the image, grain overwhelms the image content completely, to the point where the footage becomes unwatchable.
+
+This software, cineFlow, was developed in an effort to reconstruct as much as possible of the *original* image information. 
+
+Classical approaches to that task use noise profiles or grain
+statistics. Newer, neural network-based approaches use good guesses ("Oh, that looks like hair, let's simulate it"). In cineFlow, no neural network is used to invent image content.
+
+Instead of hunting the noise, cineFlow hunts the scene information directly. Follow a detail of a scene reliably across several frames, combine its signature from several samplings, and you end up with something that *was* in
+the film but was never cleanly visible in any one frame. 
+
+cineFlow uses optical flow algorithms to track image features across several frames. Basically, for any given
+scene, a spatio-temporal data set is created, which describes the scene. This data set is fed into the next stage of the algorithm, where a trust mechanism checks
+the computed data for consistency and assigns a trust value 
+to each element of the data set. 
+
+That is where most of the work sits. Combining the frames
+afterwards is mostly a weighted average and little else — it can stay simple because the trust values already carry the decision. Grain disappears because it has no 
+counterpart in neighbouring frames, not because the 
+program went looking for it. A final enhancement stage uses this intermediate image together with trust and texture values to create the 
+final output image.
+
+That is also the reason why cineFlow works on a wide
+variety of input material. Among others, it has been
+tested on: 
+
++ RAW 12 bit scans
++ HDR scans
++ Agfa/Kodak/Fuji and other reversal film scans
++ Negative film scans (Orwo 54 developed in Rodinal)
 
 ## The two programs
 
@@ -50,8 +52,9 @@ frames. These are kept apart.
 | **flowQt.py** | interactive front end. One frame at a time, sliders, a set of diagnostic views. This is where you work out the settings for a scene and save them as a recipe. |
 | **cineFlow.py** | batch processor. No window, no sliders. Point it at a folder of scenes and it applies the recipes across all of them. |
 
-Both use the same computation, so what you tune in flowQt is what the
-batch produces.
+Both use the same computation, so what you tune in flowQt is what the batch produces.
+
+The standard exchange format is a directory of 16 bit TIFF files, but the software package can also operate on normal video files, writing FFV1, ProRes 4444 and 4444 XQ, or H.264.
 
 ## Getting started
 
@@ -67,9 +70,7 @@ it a great deal faster.
 
 ## Status
 
-This is version 2.0 of the software: working software that one person
-uses on his own film, published in the hope that it is useful to
-others.
+This is version 2.0 of the software: working software that one person uses on his own films, published in the hope that it is useful to others.
 
 Some parts of the program — the dust removal modes in particular —
 work but have had far less attention than the degraining itself.

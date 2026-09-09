@@ -7,10 +7,12 @@ in a folder, and run them.
 The software was installed and tested end to end under Win11, WSL2
 and Linux Mint.
 
-Three steps should get you going:
+Fivce steps should get you going:
 
 + get a working Python interpreter
++ set up a virtual environment
 + install four packages
++ get ffmpeg, if you work with video
 + try it out
 
 > **Note:** for fast batch processing the software uses PyTorch with
@@ -100,7 +102,8 @@ python cineFlow.py --help
 ```
 
 If that prints the option list, all four modules import cleanly and
-cineFlow is ready to run — over SSH too, it needs no window.
+cineFlow is ready to run — over SSH too, it needs no window. Calling
+`python cineFlow.py` with no arguments at all prints the same list.
 
 Now the same test for flowQt. Note that **flowQt does need a window**,
 so start it at the machine's own console:
@@ -114,7 +117,7 @@ The banner tells you what the program found:
 ```
 [RAFT] not available -- install PyTorch + torchvision
 [RAFT]   ModuleNotFoundError("No module named 'torchvision'")
-[flowQt] 2.0  --  Python 3.9.0, numpy 2.0.2, OpenCV 5.0.0
+[flowQt] 2.0  --  Python 3.12.3, numpy 2.1.3, OpenCV 4.10.0
 [flowQt] flow: DIS  (unavailable: RAFT)
 ```
 
@@ -314,7 +317,9 @@ cineFlow is deliberately quiet about your disk. It writes:
 - whatever you capture with `p`, as a PNG in a `_snapshots` folder
   next to your material.
 - the output of a batch run, in the output folder you name on the
-  command line, together with a `cineflow_run.json` recording the
-  numbers that produced it.
+  command line — or, if you name none, in a `results` folder next to
+  your material. Either way the run itself goes into a sub-folder
+  named after the moment it started, together with a
+  `cineflow_run.json` recording the numbers that produced it.
 
 Your original material is never touched.
