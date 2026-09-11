@@ -264,8 +264,11 @@ the moment you ask for it. That is right while you are tuning, and
 useless once the settings are found.
 
 That is where the second program comes in. **cineFlow** has no window
-and no sliders: only throughput. It computes the same stages as
-flowQt, scene after scene, applying whichever recipe covers each one.
+and no sliders: it takes a folder of scenes and works through them
+unattended, applying whichever recipe covers each one. Unattended
+with one exception — if the output disk looks too small it asks
+before writing a single frame, and 2.3.B says what to do about that
+in a script.
 
 ### 2.3.A What goes in, what comes out
 

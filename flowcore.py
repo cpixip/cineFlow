@@ -676,11 +676,36 @@ def photometric_trust(warped_frame, frame_0, mismatch=0.1, radius=3,
     photo_smooth = cv2.blur(photo_dev, (k, k))
     return sigmoid_trust(photo_smooth, mismatch, softness)
 
+def _median_mad_banded(stack, bands=None):
+    from concurrent.futures import ThreadPoolExecutor
+    H = stack.shape[1]
+    if bands is None:
+        bands = max(1, min(os.cpu_count() or 1, 16, H // 32))
+    if bands <= 1:
+        median = np.median(stack, axis=0)
+        dev = np.abs(stack - median[None, ...]).mean(axis=3)
+        return median, np.median(dev, axis=0), dev
+    edges = np.linspace(0, H, bands + 1, dtype=int)
+    dt = np.median(stack[:, :1, :1], axis=0).dtype
+    median = np.empty(stack.shape[1:], dt)
+    dev = np.empty(stack.shape[:3], dt)
+    mad = np.empty(stack.shape[1:3], dt)
+
+    def work(a, b):
+        s = stack[:, a:b]
+        m = np.median(s, axis=0)
+        d = np.abs(s - m[None, ...]).mean(axis=3)
+        median[a:b] = m
+        dev[:, a:b] = d
+        mad[a:b] = np.median(d, axis=0)
+
+    with ThreadPoolExecutor(max_workers=bands) as ex:
+        list(ex.map(lambda ab: work(*ab), zip(edges[:-1], edges[1:])))
+    return median, mad, dev
+
 def group_median_mad(f0, warped_list, center_weight=1):
     stack = np.stack([f0] * center_weight + list(warped_list), axis=0)
-    median_img = np.median(stack, axis=0)
-    dev = np.abs(stack - median_img[None, ...]).mean(axis=3)
-    mad = np.median(dev, axis=0)
+    median_img, mad, dev = _median_mad_banded(stack)
     return median_img, mad, dev
 
 def committee_stats(f0, warped_list):
@@ -688,10 +713,7 @@ def committee_stats(f0, warped_list):
         return None, None, None, None, None
 
     stack = np.stack(warped_list, axis=0)
-    median_nb = np.median(stack, axis=0)
-
-    dev_nb = np.mean(np.abs(stack - median_nb[None]), axis=3)
-    disp = np.median(dev_nb, axis=0)
+    median_nb, disp, dev_nb = _median_mad_banded(stack)
 
     diff = f0 - median_nb
     signed = np.mean(diff, axis=2)
