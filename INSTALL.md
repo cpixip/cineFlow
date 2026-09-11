@@ -7,7 +7,7 @@ in a folder, and run them.
 The software was installed and tested end to end under Win11, WSL2
 and Linux Mint.
 
-Fivce steps should get you going:
+Five steps should get you going:
 
 + get a working Python interpreter
 + set up a virtual environment
@@ -78,9 +78,11 @@ about 160 MB of download.
 > pip install opencv-python
 > ```
 
-Without an NVIDIA card this is the whole installation, and section 6
-("RAFT — the optional GPU part") does not apply — cineFlow will use
-the DIS flow estimator throughout.
+If your material comes as TIFF sequences and there is no NVIDIA card
+in the machine, this is the whole installation: section 6 ("RAFT —
+the optional GPU part") does not apply, and cineFlow will use the DIS
+flow estimator throughout. For video files, section 4 (ffmpeg) is
+needed as well.
 
 ## 4. ffmpeg
 
@@ -88,10 +90,12 @@ ffmpeg is needed if you work with video files rather than TIFF
 sequences. cineFlow uses both `ffmpeg` and `ffprobe`.
 
 On Linux, `sudo apt install ffmpeg` brings both. On Windows, fetch a
-build from <https://ffmpeg.org/download.html> and unpack it anywhere:
-cineFlow looks in the usual places by itself, and only an unusual
-location needs adding to `PATH`. Check with `ffmpeg -version` and
-`ffprobe -version`.
+build from <https://ffmpeg.org/download.html> and unpack it. cineFlow
+finds it by itself in `C:\ffmpeg`, under `Program Files` or
+`%LOCALAPPDATA%`, and anywhere on `PATH`. For any other place, set the
+environment variable `FFMPEG_DIR` to the folder that holds the two
+executables — that is the simplest route and leaves `PATH` alone.
+Check with `ffmpeg -version` and `ffprobe -version`.
 
 ## 5. Check that it runs
 
@@ -319,7 +323,8 @@ cineFlow is deliberately quiet about your disk. It writes:
 - the output of a batch run, in the output folder you name on the
   command line — or, if you name none, in a `results` folder next to
   your material. Either way the run itself goes into a sub-folder
-  named after the moment it started, together with a
-  `cineflow_run.json` recording the numbers that produced it.
+  named after the moment it started, together with a run log
+  recording the numbers that produced it — `cineflow_run.json` inside
+  a scene folder, `<name>_cineflow_run.json` beside a video file.
 
 Your original material is never touched.

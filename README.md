@@ -1,40 +1,39 @@
 # cineFlow — Restoring Small-Gauge Film
 
-
 ![flowQt with real data](images/19-flowQtInUse.png)
 
 *flowQt — the interactive front end, working out the settings for a scene.*
 
-This software development started with a specific challenge: in 1981, about 20 rolls of Kodachrome 40 
+This software development started with a specific challenge: in 1981, about 20 rolls of Kodachrome 40
 film stock were exposed. They were stored in an attic for over a year before they were finally
-developed. 
+developed.
 
-While Kodachrome 40 was one of the best film stocks one 
+While Kodachrome 40 was one of the best film stocks one
 could choose at that time, the long delay between exposure
 and development created a unique film look with increased film grain. In fact, in darker parts of the image, grain overwhelms the image content completely, to the point where the footage becomes unwatchable.
 
-This software, cineFlow, was developed in an effort to reconstruct as much as possible of the *original* image information. 
+This software, cineFlow, was developed in an effort to reconstruct as much as possible of the *original* image information.
 
 Classical approaches to that task use noise profiles or grain
 statistics. Newer, neural network-based approaches use good guesses ("Oh, that looks like hair, let's simulate it"). In cineFlow, no neural network is used to invent image content.
 
 Instead of hunting the noise, cineFlow hunts the scene information directly. Follow a detail of a scene reliably across several frames, combine its signature from several samplings, and you end up with something that *was* in
-the film but was never cleanly visible in any one frame. 
+the film but was never cleanly visible in any one frame.
 
 cineFlow uses optical flow algorithms to track image features across several frames. Basically, for any given
 scene, a spatio-temporal data set is created, which describes the scene. This data set is fed into the next stage of the algorithm, where a trust mechanism checks
-the computed data for consistency and assigns a trust value 
-to each element of the data set. 
+the computed data for consistency and assigns a trust value
+to each element of the data set.
 
 That is where most of the work sits. Combining the frames
-afterwards is mostly a weighted average and little else — it can stay simple because the trust values already carry the decision. Grain disappears because it has no 
-counterpart in neighbouring frames, not because the 
-program went looking for it. A final enhancement stage uses this intermediate image together with trust and texture values to create the 
+afterwards is mostly a weighted average and little else — it can stay simple because the trust values already carry the decision. Grain disappears because it has no
+counterpart in neighbouring frames, not because the
+program went looking for it. A final enhancement stage uses this intermediate image together with trust and texture values to create the
 final output image.
 
 That is also the reason why cineFlow works on a wide
 variety of input material. Among others, it has been
-tested on: 
+tested on:
 
 + RAW 12 bit scans
 + HDR scans
