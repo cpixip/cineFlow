@@ -69,6 +69,7 @@ else:
 
 from cineflow_defaults import SCENE_PARAMS, VERSION
 from cineio import scene_config_path, safe_name, imwrite_unicode
+import cineio
 
 _SCRIPT = os.path.basename(__file__)
 
@@ -1388,6 +1389,8 @@ class AutoplayRecorder:
         self.size = None
         self.fmt = "mp4"
         self.written_idx = None
+        self.start_idx = None
+        self.view_key = None
         self.b_play_fwd = None
         self.b_play_bwd = None
         self.b_record = None
@@ -1539,6 +1542,8 @@ class AutoplayRecorder:
                 return
             fps_note = "18fps"
         self.size = (w, h)
+        self.start_idx = self.m.idx
+        self.view_key = self.m._current_view()
         self.writer.write(frame)
         self.count = 1
         self.written_idx = self.m.idx
@@ -1559,10 +1564,32 @@ class AutoplayRecorder:
         self.count += 1
         self.written_idx = self.m.idx
 
+    def _write_record(self):
+        try:
+            eff, _want = fcore.resolve_backend(self.m.cfg, None)
+            scene = os.path.basename(os.path.normpath(
+                self.m.folder if os.path.isdir(self.m.folder)
+                else os.path.splitext(self.m.folder)[0]))
+            end_idx = self.written_idx if self.written_idx is not None \
+                else self.start_idx
+            cineio.write_run_record(
+                self.path, self.m.cfg, scene, self.m.folder,
+                f"flowQt {__version__}",
+                runner={"path": "flowQt/rec", "flow": eff,
+                        "format": self.fmt, "capture": "screen, 8 bit"},
+                frames=self.count,
+                frame_range=(self.start_idx, end_idx),
+                view=self.view_key,
+                log=lambda msg: fcore.log("rec", msg.strip().replace("[config] ", "")))
+        except Exception as e:
+            self.m.statusBar().showMessage(
+                f"recording ok, but run log not written: {e!r}", 8000)
+
     def stop_record(self):
         if self.writer is None:
             return
         self.writer.release()
+        self._write_record()
         self.written_idx = None
         self.m.statusBar().showMessage(
             f"recording finished: {self.count} frames -> "
@@ -3717,20 +3744,7 @@ class Main(QMainWindow):
                                   scene_config_path(self.folder))
 
     def _recipe_dict(self):
-        mode = str(self.cfg.get("mode", "best"))
-        cfg = {"mode": mode}
-        for k in SCENE_PARAMS:
-            if k != "mode" and k in self.cfg:
-                cfg[k] = self.cfg[k]
-        if mode != "dustA":
-            cfg.pop("center_weight", None)
-            for k in ("dustA_mismatch", "dustA_softness"):
-                cfg.pop(k, None)
-        if mode != "dustB":
-            for k in ("dustB_mismatch", "dustB_softness", "dustB_disagreement",
-                      "dustB_disagreement_softness"):
-                cfg.pop(k, None)
-        return cfg
+        return cineio.scene_recipe(self.cfg)
 
     def _export_as(self):
         if not getattr(self, "folder", None):

@@ -48,7 +48,10 @@ from cineflow_defaults import DEFAULT_CONFIG, MODES, EPS_GUARD
 
 def _load_json(path):
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        doc = json.load(f)
+    if isinstance(doc, dict):
+        doc = {k: v for k, v in doc.items() if not str(k).startswith("_")}
+    return doc
 
 FOLDER_CONFIG_FILENAME = "cineflow_folder.json"
 
@@ -1171,90 +1174,11 @@ class Pipeline:
         self.stage_e_enhance(data)
         return data["output"]
 
-RECORD_NAME = "cineflow_run.json"
-
-def _record_path(out_path):
-    if os.path.isdir(out_path):
-        return os.path.join(out_path, RECORD_NAME)
-    base = os.path.splitext(out_path)[0]
-    return f"{base}_{RECORD_NAME}"
-
-def _read_input_chain(input_path):
-    if os.path.isdir(input_path):
-        d, stem = input_path, ""
-    else:
-        d = os.path.dirname(input_path)
-        stem = os.path.splitext(os.path.basename(input_path))[0] + "_"
-
-    best = os.path.join(d, f"{stem}{RECORD_NAME}") if stem \
-        else os.path.join(d, RECORD_NAME)
-    if not os.path.isfile(best):
-        return [], 1
-    try:
-        with open(best) as fh:
-            doc = json.load(fh)
-    except Exception as e:
-        print(f"  [config] WARNING: Vorgaenger-Protokoll {os.path.basename(best)} "
-              f"not readable ({e!r}) -- Kette beginnt neu bei 1.")
-        return [], 1
-    kette = doc.get("_chain")
-    if not isinstance(kette, list) or not kette:
-        return [], 1
-    print(f"  [config] predecessor detected: {os.path.basename(best)} "
-          f"({len(kette)} run(s)) -- this becomes run "
-          f"{len(kette) + 1}.")
-    return kette, len(kette) + 1
-
 def _write_resolved(out_path, config, scene, runner=None,
                     frames=None, fps=None, seconds=None):
-    from cineflow_defaults import SCENE_PARAMS, RUNTIME_PARAMS
-
-    kette, n = _read_input_chain(scene.input_path)
-
-    schritt = {
-        "run": n,
-        "cineflow": APP_TAG,
-        "source": scene.input_path,
-        "scene": scene.name,
-        "time": datetime.datetime.now().isoformat(timespec="seconds"),
-        "frames": frames,
-        "fps": round(fps, 3) if fps else None,
-        "seconds": round(seconds, 1) if seconds else None,
-        "params": {k: config[k] for k in SCENE_PARAMS if k in config},
-        "runner": runner or {},
-    }
-    kette = list(kette) + [schritt]
-
-    doc = {
-        "_run": {
-            "cineflow": APP_TAG,
-            "run": n,
-            "runs_total": len(kette),
-            "source": scene.input_path,
-            "origin": kette[0].get("source"),
-            "scene": scene.name,
-            "frames": frames,
-            "fps": round(fps, 3) if fps else None,
-            "seconds": round(seconds, 1) if seconds else None,
-            "time": schritt["time"],
-        },
-        "_chain": kette,
-        "_runner": runner or {},
-    }
-    for k in SCENE_PARAMS:
-        if k in config:
-            doc[k] = config[k]
-    doc["_runtime"] = {k: config[k] for k in RUNTIME_PARAMS if k in config}
-
-    path = _record_path(out_path)
-    try:
-        with open(path, "w") as f:
-            json.dump(doc, f, indent=2)
-            f.write("\n")
-        print(f"  [config] run log -> {os.path.basename(path)}"
-              + (f"  (chain: {len(kette)} runs)" if len(kette) > 1 else ""))
-    except Exception as e:
-        print(f"  [config] WARNING: could not write {path}: {e!r}")
+    cineio.write_run_record(out_path, config, scene.name, scene.input_path,
+                            APP_TAG, runner=runner, frames=frames, fps=fps,
+                            seconds=seconds)
 
 class _Progress:
 

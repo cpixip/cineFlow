@@ -37,15 +37,16 @@
   - [4.4 Flipping](#44-flipping)
   - [4.5 Split-View Mode](#45-split-view-mode)
 - [5. Best Practices](#5-best-practices)
-  - [5.1 Don't process a full reel](#51-dont-process-a-full-reel)
-  - [5.2 Pick the right frame](#52-pick-the-right-frame)
-  - [5.3 Get the flow right first](#53-get-the-flow-right-first)
-  - [5.4 How many neighbours are worth having](#54-how-many-neighbours-are-worth-having)
-  - [5.5 Then adjust the trusts](#55-then-adjust-the-trusts)
-  - [5.6 Enhance last](#56-enhance-last)
-  - [5.7 Always render a short test](#57-always-render-a-short-test)
-  - [5.8 Save the recipe, then let the batch run](#58-save-the-recipe-then-let-the-batch-run)
-  - [5.9 How to be wrong](#59-how-to-be-wrong)
+  - [5.1 Be reasonable about resolution](#51-be-reasonable-about-resolution)
+  - [5.2 Don't process a full reel](#52-dont-process-a-full-reel)
+  - [5.3 Pick the right frame](#53-pick-the-right-frame)
+  - [5.4 Get the flow right first](#54-get-the-flow-right-first)
+  - [5.5 How many neighbours are worth having](#55-how-many-neighbours-are-worth-having)
+  - [5.6 Then adjust the trusts](#56-then-adjust-the-trusts)
+  - [5.7 Enhance last](#57-enhance-last)
+  - [5.8 Always render a short test](#58-always-render-a-short-test)
+  - [5.9 Save the recipe, then let the batch run](#59-save-the-recipe-then-let-the-batch-run)
+  - [5.10 How to be wrong](#510-how-to-be-wrong)
 - [6. The views in detail](#6-the-views-in-detail)
   - [6.1 Input](#61-input)
   - [6.2 Output](#62-output)
@@ -736,7 +737,21 @@ of the sections is the working order: it follows the four steps from
 forwards and the program keeps up with you — change the flow after you
 have set everything else, and all of it is thrown away.
 
-## 5.1 Don't process a full reel
+## 5.1 Be reasonable about resolution
+
+A Normal-8 or Super-8 frame does not hold more picture than
+1440 × 1080 pixels can carry — 2.4.B ("How large should the scan be?")
+has the numbers. Everything above that is grain and overscan, and
+cineFlow computes on every pixel of it: the flow, the warps, the
+trust maps and the fusion all scale with the frame, the flow
+quadratically. A 4K scan takes four times as long as a 2K scan of
+the same film, and the result is not better.
+
+So do not run the programs on 4K material. Even with a generous
+overscan, there is no reason to work above 2K; a scan around
+1800 × 1350 is the comfortable size.
+
+## 5.2 Don't process a full reel
 
 One recipe will get you through a whole reel, and the result will be
 visibly better than the scan. It will not be the best result,
@@ -753,7 +768,7 @@ of scenes that were shot alike, or a single scene — the batch does
 not care where the cuts inside a block fall, it handles them by
 itself. Cut where the settings change, not where the film does.
 
-## 5.2 Pick the right frame
+## 5.3 Pick the right frame
 
 Two choices, at two levels. For a run of scenes that will share a
 recipe, tune on a typical one — not the darkest, not the fastest,
@@ -767,7 +782,7 @@ Take your test frame from **somewhere with neighbours on both sides**. Pressing 
 
 At the very first or last frame half of the full neighbourhood is missing, and you would be tuning against a case that does not represent the scene.
 
-## 5.3 Get the flow right first
+## 5.4 Get the flow right first
 
 Go to `Neighbour (warped)` and flip against `Input`.
 
@@ -796,7 +811,7 @@ show that: its preview computes the same way whichever backend you
 choose. The frame rate you get from cineFlow with DIS will be
 disappointing.
 
-## 5.4 How many neighbours are worth having
+## 5.5 How many neighbours are worth having
 
 `context` pulls in two directions. More neighbours give a more stable,
 less noisy result; fewer of them cost less time. What decides the
@@ -833,7 +848,7 @@ lot of movement even the immediate neighbour can come out low — 0.6,
 say — while on an essentially static scene the twentieth frame would
 still have something to contribute. cineFlow allows ±8 at most.
 
-## 5.5 Then adjust the trusts
+## 5.6 Then adjust the trusts
 
 The two gates ask different questions of the same neighbour, and the
 maps look different because of it.
@@ -873,7 +888,7 @@ gates is not obvious, and you need a feel for what each slider does to
 the end result. If that is more work than you want: the defaults work
 for most material.
 
-## 5.6 Enhance last
+## 5.7 Enhance last
 
 The main control of the Enhance stage is `amount`. At 0 the stage is
 switched off; useful values lie roughly between 1.5 and 4.0, and where
@@ -903,7 +918,7 @@ frequency, and this number does not tell them apart. It tells you
 what happened, not whether it was right. The line appears on the
 `Output` view only; on the diagnostic views it stays empty.
 
-## 5.7 Always render a short test
+## 5.8 Always render a short test
 
 Everything so far was judged on a still. The mistakes that matter most
 are not still ones: flicker, pumping, crawling grain exist only in
@@ -920,7 +935,7 @@ Then watch the clip properly, at normal speed. If something pumps or
 crawls, go back and correct — usually the trust settings, sometimes
 `context`.
 
-## 5.8 Save the recipe, then let the batch run
+## 5.9 Save the recipe, then let the batch run
 
 Press **Save recipe**. The file lands next to your material and is
 exactly what cineFlow reads (2.2.D).
@@ -934,7 +949,7 @@ python cineFlow.py /path/to/scenes /path/to/output
 ```
 
 
-## 5.9 How to be wrong
+## 5.10 How to be wrong
 
 - **Forcing the black open on the trust maps.** Where the registered
   neighbour genuinely went wrong, the trust map is *supposed* to go
@@ -959,7 +974,7 @@ python cineFlow.py /path/to/scenes /path/to/output
 - **Reaching for `context` when the trust is wrong.** More neighbours
   do not repair a bad threshold; they add more frames judged by the
   same bad threshold, at four flow calls each. Fix the gate, then see
-  whether more context still buys anything (5.4).
+  whether more context still buys anything (5.5).
 
 *(This list is short because one person's mistakes are a small sample.
 If you have found a way to be wrong that is not on it, an issue on
@@ -1012,7 +1027,7 @@ not depend on a neighbour it is greyed out.
 
 The neighbour offset is not limited by `context` — you can step past
 the blend window and see how far the flow still carries on this scene.
-5.4 ("How many neighbours are worth having") says what to do with
+5.5 ("How many neighbours are worth having") says what to do with
 that.
 
 ## 6.4 Neighbour × trust
@@ -1364,7 +1379,7 @@ the fusion in `best`, for the committee in the dust modes. Each one
 costs two flow calls, so cost grows linearly, while the benefit grows
 only with √N.
 
-How to find the right value for a scene: see 5.4 ("How many neighbours
+How to find the right value for a scene: see 5.5 ("How many neighbours
 are worth having").
 
 ## 8.2 Trust
@@ -1448,7 +1463,7 @@ not merely set to no effect. Useful values are roughly between 1.5
 and 4.0.
 
 Chapter 2.2 ("One slider to rule them all") walks through it at 0, at
-maximum, and in between; 5.6 ("Enhance last") says what to judge it
+maximum, and in between; 5.7 ("Enhance last") says what to judge it
 by.
 
 ### 8.3.B texture tab — `full` · `gamma` · `base`

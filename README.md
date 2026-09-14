@@ -55,6 +55,11 @@ Both use the same computation, so what you tune in flowQt is what the batch prod
 
 The standard exchange format is a directory of 16 bit TIFF files, but the software package can also operate on normal video files, writing FFV1, ProRes 4444 and 4444 XQ, or H.264.
 
+Also in this repository: **compareQt.py**, a small viewer for putting two
+versions of the same scene side by side — split, side by side, or with the
+amplified difference — and rendering the comparison to a video. Undocumented
+beyond its tooltips; there is not much to it.
+
 ## Getting started
 
 - **[INSTALL.md](INSTALL.md)** — installation, from a machine with no

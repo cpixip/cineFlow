@@ -256,3 +256,110 @@ def _imread_cv2(path, why):
         raise RuntimeError(f"cannot read {path} with tifffile or cv2 "
                            f"-- damaged file?")
     return img[:, :, ::-1].copy() if img.ndim == 3 else img
+
+RECORD_NAME = "cineflow_run.json"
+
+def scene_recipe(cfg):
+    from cineflow_defaults import SCENE_PARAMS
+    mode = str(cfg.get("mode", "best"))
+    out = {"mode": mode}
+    for k in SCENE_PARAMS:
+        if k != "mode" and k in cfg:
+            out[k] = cfg[k]
+    if mode != "dustA":
+        out.pop("center_weight", None)
+        for k in ("dustA_mismatch", "dustA_softness"):
+            out.pop(k, None)
+    if mode != "dustB":
+        for k in ("dustB_mismatch", "dustB_softness", "dustB_disagreement",
+                  "dustB_disagreement_softness"):
+            out.pop(k, None)
+    return out
+
+def recipe_summary(params, runner=None):
+    flow = (runner or {}).get("flow") or params.get("flow_backend", "?")
+    bits = [str(params.get("mode", "?")), str(flow),
+            f"downscale {params.get('downscale', '?')}",
+            f"context {params.get('context', '?')}"]
+    amt = params.get("sharp_amount")
+    if amt is not None:
+        bits.append("enhance off" if float(amt) == 0 else
+                    f"{params.get('detail_filter', '?')} amount {amt:g}")
+    return ", ".join(bits)
+
+def record_path(out_path):
+    if os.path.isdir(out_path):
+        return os.path.join(out_path, RECORD_NAME)
+    base = os.path.splitext(out_path)[0]
+    return f"{base}_{RECORD_NAME}"
+
+def read_input_chain(input_path, log=print):
+    path = record_path(input_path)
+    if not os.path.isfile(path):
+        return [], 1
+    try:
+        with open(path) as fh:
+            doc = json.load(fh)
+    except Exception as e:
+        log(f"  [config] WARNING: predecessor log {os.path.basename(path)} "
+            f"not readable ({e!r}) -- chain starts anew at 1.")
+        return [], 1
+    kette = doc.get("_chain")
+    if not isinstance(kette, list) or not kette:
+        return [], 1
+    log(f"  [config] predecessor detected: {os.path.basename(path)} "
+        f"({len(kette)} run(s)) -- this becomes run {len(kette) + 1}.")
+    return kette, len(kette) + 1
+
+def write_run_record(out_path, config, scene_name, input_path, app_tag,
+                     runner=None, frames=None, fps=None, seconds=None,
+                     frame_range=None, view=None, log=print):
+    import datetime
+    from cineflow_defaults import RUNTIME_PARAMS
+
+    kette, n = read_input_chain(input_path, log=log)
+    params = scene_recipe(config)
+    runner = dict(runner or {})
+    now = datetime.datetime.now().isoformat(timespec="seconds")
+
+    schritt = {
+        "run": n,
+        "summary": recipe_summary(params, runner),
+        "cineflow": app_tag,
+        "source": input_path,
+        "scene": scene_name,
+        "time": now,
+    }
+    if frames is not None:
+        schritt["frames"] = frames
+    if fps:
+        schritt["fps"] = round(fps, 3)
+    if seconds:
+        schritt["seconds"] = round(seconds, 1)
+    if frame_range is not None:
+        schritt["frame_range"] = [int(frame_range[0]), int(frame_range[1])]
+    if view is not None:
+        schritt["view"] = view
+    schritt["params"] = params
+    schritt["runner"] = runner
+    kette = list(kette) + [schritt]
+
+    doc = {"_run": {k: v for k, v in schritt.items()
+                    if k not in ("params", "runner")}}
+    doc["_run"]["runs_total"] = len(kette)
+    doc["_run"]["origin"] = kette[0].get("source")
+    doc.update(params)
+    doc["_runner"] = runner
+    doc["_runtime"] = {k: config[k] for k in RUNTIME_PARAMS if k in config}
+    doc["_chain"] = kette
+
+    path = record_path(out_path)
+    try:
+        with open(path, "w") as f:
+            json.dump(doc, f, indent=2)
+            f.write("\n")
+        log(f"  [config] run log -> {os.path.basename(path)}"
+            + (f"  (chain: {len(kette)} runs)" if len(kette) > 1 else ""))
+    except Exception as e:
+        log(f"  [config] WARNING: could not write {path}: {e!r}")
+    return path
