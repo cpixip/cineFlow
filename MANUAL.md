@@ -36,6 +36,7 @@
   - [4.3 Zoom and pan](#43-zoom-and-pan)
   - [4.4 Flipping](#44-flipping)
   - [4.5 Split-View Mode](#45-split-view-mode)
+  - [4.6 Lifting the shadows](#46-lifting-the-shadows)
 - [5. Best Practices](#5-best-practices)
   - [5.1 Be reasonable about resolution](#51-be-reasonable-about-resolution)
   - [5.2 Don't process a full reel](#52-dont-process-a-full-reel)
@@ -111,7 +112,7 @@ described, each building on the last. We start with a simple example and finish 
 
 ## 2.1 Degrained footage in less than 5 minutes
 
-The goal here is produce a degrained video without adjusting or understanding anything.
+The goal here is to produce a degrained video without adjusting or understanding anything.
 
 ### 2.1.A Start flowQt
 
@@ -133,9 +134,9 @@ touch a single one in this section.
 
 In order to load some material, simply drag a video file onto the large area.
 
-That is the entire loading procedure. If your material sits as .tif frames in a single folder, drop that folder instead — flowQt accepts both.
+That is the entire loading procedure. If your material sits as single frames in a folder — TIFF, JPG or PNG — drop that folder instead; flowQt accepts both.
 
-> **Note:** If you started flowQt under WSL2, a drag and drop of Windows folders is not possible; the **Load Tif** and **Load Video** buttons do the same job.
+> **Note:** If you started flowQt under WSL2, a drag and drop of Windows folders is not possible; the **Load Images** and **Load Video** buttons do the same job.
 
 ![Opening via Drag-and_Drop](images/02-DragDrop.png)
 
@@ -149,7 +150,7 @@ few seconds — this is the real computation, not a preview.
 
 ![The Output View](images/12-viewdisplay.png)
 
-When the computed frame appears, have a look at it. Than press **cursor up**: you are back at the input image. **Cursor down** returns you to the output.
+When the computed frame appears, have a look at it. Then press **cursor up**: you are back at the input image. **Cursor down** returns you to the output.
 
 Go back and forth a few times; that comparison is what flowQt is for.
 
@@ -167,7 +168,7 @@ At the bottom right there is a box labelled **Autoplay | Record**.
 
 
 1. Go to the first frame of your footage (by pressing **Home**).
-2. Make sure you are on the *2. Output (best)* view and that the split-view option is off — it is off when there is no vertical yellow line visibl. Press the **l**-key until the line disappears.
+2. Make sure you are on the *2. Output (best)* view and that the split-view option is off — it is off when there is no vertical yellow line visible. Press the **l**-key until the line disappears.
 3. Set the selector next to REC to **mp4**.
 4. Press **REC**. The button turns red: recording is armed and
    running.
@@ -279,15 +280,15 @@ python cineFlow.py /path/to/scenes /path/to/output
 ```
 
 That is the whole command. cineFlow is pointed at a folder, not at a
-single scene, and everything it finds inside becomes one scene: a sub-folder full of TIFFs, a sub-folder full of video files, or a video file lying in the folder itself:
+single scene, and everything it finds inside becomes one scene: a sub-folder full of frames (TIFF, JPG or PNG), a sub-folder full of video files, or a video file lying in the folder itself:
 
 ```
 scans/
-├── Szene_1/              ← a folder of TIFFs: one scene
+├── Szene_1/              ← a folder of frames: one scene
 │   ├── Frame_00000001.tif
 │   ├── Frame_00000002.tif
 │   └── ...
-├── Szene_2/              ← another folder of TIFFs: a new scene
+├── Szene_2/              ← another folder of frames: a new scene
 │   └── ...
 ├── Rolle_3/              ← a folder of videos: one scene per file
 │   ├── clip_001.mp4
@@ -314,8 +315,11 @@ out/
     └── USA_1981.mkv
 ```
 
-Each scene comes back in the shape it went in: a folder of TIFFs stays
-a folder of TIFFs, a video file stays a video file. The frame numbers
+Each scene comes back in the shape it went in: a folder of frames stays
+a folder of frames, a video file stays a video file. Frames are always
+written as TIFF, whichever format they were read from. A folder that
+holds more than one image format is read in its most frequent one;
+the rest is left out, and cineFlow says so. The frame numbers
 continue the numbering of the source, so a scene that started at frame
 72 still starts at frame 72. Video output is written as FFV1 in an
 `.mkv` — lossless, and read by DaVinci from version 19 on. Older
@@ -347,8 +351,8 @@ The four levels, each overriding the previous one:
    anywhere on disk and chosen per run rather than per folder. The
    route for a treatment you want to try across several folders
    without leaving a file in any of them.
-4. **The scene's own recipe** — the file flowQt wrote in 2.2.D. Beside
-   a folder of TIFFs it is `<scene>/cineflow.json`, beside a video
+4. **The scene's own recipe** — the file flowQt wrote in 2.2.D. Inside
+   a folder of frames it is `<scene>/cineflow.json`, beside a video
    file `<scene>_cineflow.json`. It overrides everything else, and
    cineFlow says nothing about it: silence means the scene has its own
    recipe.
@@ -358,7 +362,7 @@ The four levels, each overriding the previous one:
 
 A reel usually consists of many scenes that were shot under similar
 conditions and a handful that were not. That maps directly onto the
-two files types ( one `cineflow_folder.json` and maybe several `cineflow.json`).
+two file types (one `cineflow_folder.json` and maybe several `cineflow.json`).
 
 Tune one representative scene in flowQt — a normal one, nothing
 special. Then **right-click** the **Save recipe** button. In the
@@ -380,7 +384,7 @@ Now every scene is processed with the general recipe contained in
 `cineflow_folder.json`, except Szene_3, which brings its own —  saved there with a plain left-click on **Save recipe**,
 as in 2.2.D. Twenty scenes, two files, one batch run.
 
-One thing to know about this: flowQt writes always a complete recipe, every parameter that matters for the current mode, not just the ones you
+One thing to know about this: flowQt always writes a complete recipe, every parameter that matters for the current mode, not just the ones you
 changed. So a scene file does not inherit the folder settings and
 adjust a few of them; it replaces them. If you tune a scene in flowQt,
 tune it as a whole.
@@ -412,10 +416,10 @@ It writes an `.mp4`.
 ### 2.3.E Forcing the format
 
 Normally the output format follows the input, and that is almost
-always what you want (2.3.A). The `--output-format` flag overrides it in both directions: `video` turns a folder of TIFFs into a video file, `tiff`
+always what you want (2.3.A). The `--output-format` flag overrides it in both directions: `video` turns a folder of frames into a video file, `tiff`
 unpacks a video into a numbered sequence.
 
-A TIFF folder has no frame rate to read, so writing video from one
+A folder of frames has no frame rate to read, so writing video from one
 uses `tiff_fps` from the config — 18 by default, the silent Super-8
 norm. Set it if your material ran at something else.
 
@@ -431,7 +435,8 @@ how it was made, the answer is sitting next to it.
 And it is not only a note to yourself. Drag the `cineflow_run.json`
 onto the flowQt window and the settings of that run are back —
 flowQt recognises the log and says in the status line which run it
-came from. The same works for any recipe file.
+came from. If the log records several runs, flowQt asks which run's
+settings you want. The same works for any recipe file.
 
 ---
 
@@ -439,7 +444,7 @@ came from. The same works for any recipe file.
 ## 2.4 The full quality, finally
 
 So far it did not matter much which of the two you brought: a folder
-of TIFFs or a video file, cineFlow takes both. For serious work it
+of frames or a video file, cineFlow takes both. For serious work it
 does matter, and the video route is the wrong one.
 
 Every video file is compressed. The codec decides what it considers
@@ -449,7 +454,9 @@ out to collect across frames. It can only recover what
 is still there.
 
 The full route therefore uses **image sequences**: a folder of TIFF
-files, one frame per file, uncompressed, 16 bit.
+files, one frame per file, uncompressed, 16 bit. JPG frames are read
+as well, but they are 8 bit and compressed, and for that reason belong
+with the video route.
 
 ### 2.4.A How it goes
 
@@ -725,6 +732,17 @@ divider on a specific detail — an edge, a face, a caption — and sweep
 it back and forth. Structure that sits in the same place on both sides
 passes through the line without moving; anything misaligned jumps as
 the line crosses it.
+
+## 4.6 Lifting the shadows
+
+The `shadows` slider in the bar above the display lifts the dark
+parts of the picture by up to 4 EV; white stays where it is. Keys `s`
+and `Shift+s` step through the whole EV values.
+
+This changes the display only; it has no effect on batch processing
+with cineFlow. Be aware, though, that a snapshot taken with `p` and a
+clip recorded with REC save what is on screen, and so include the
+lift.
 
 
 ---
@@ -1104,6 +1122,11 @@ the first on its own, and that is where you tell the two apart.
 
 ## 6.8 Flow fw · Warped flow bw · relative variants
 
+The motion is drawn in colour: the hue gives the direction, the
+brightness the amount. Which hue means which direction does not matter
+much in practice — what you look at is whether neighbouring areas
+share a colour or break up into a patchwork.
+
 Both come in an absolute and a relative variant. The relative ones
 subtract the dominant motion and show what is left over, which makes
 small local movement visible under a camera pan; the absolute ones
@@ -1112,28 +1135,11 @@ carries only the forward relative view (4.2, "Moving between views");
 the backward relative one and both absolute views sit in the
 catalogue and come in with the cycle editor (key `c`).
 
-That is the recipe — once the backward view is in the cycle next to
-the forward one: flip between them. Whatever stays put is an estimate
+Once the backward view is in the cycle next to the forward one, flip
+between them. Whatever stays put is an estimate
 the program can rely on. Whatever jumps as you switch is a place where
 the two directions disagree — and that is exactly where the geo gate
 will reject the neighbour.
-
-The motion is drawn in colour: the hue gives the direction, the
-brightness the amount. Which hue means which direction does not matter
-much in practice — what you look at is whether neighbouring areas
-share a colour or break up into a patchwork.
-
-That is the recipe: flip between them. Whatever stays put is an
-estimate the program can rely on. Whatever jumps as you switch is a
-place where the two directions disagree — and that is exactly where
-the geo gate will reject the neighbour.
-
-Both come in an absolute and a relative variant. The relative ones
-subtract the dominant motion and show what is left over, which makes
-small local movement visible under a camera pan; the absolute ones
-show the full motion including the pan. The view cycle carries the
-forward relative view out of the box (4.2); the backward relative one
-and both absolute views are in the catalogue.
 
 Within a variant the scale is shared, so those views are directly
 comparable: same colour means same direction, same brightness means
@@ -1225,7 +1231,8 @@ The dashed lines mark `p50`, `p90` and `p99`, with the values spelled
 out underneath; the red line is where `full` currently sits. That line
 is the boundary: everything to the right of it gets the full
 treatment, everything to the left is scaled down along the texture
-curve — the further left, the less.
+curve — the further left, the less. The line can be moved directly:
+click or drag in the histogram and `full` follows.
 
 Setting `full` to the p90 is the usual choice, and that is what the
 **full = p90** button in the corner does in one click. It is not
@@ -1746,6 +1753,7 @@ believe the program.
 | Click and drag | pan |
 | `l` | split: off → In \| View → View \| In |
 | `k` | split reference: In / Out / best |
+| `s` / `Shift+s` | display shadows: next / previous whole EV step (0…4 EV) |
 | `t` | texture histogram overlay on / off |
 | `g` | detail filter (guided / gauss) |
 | `r` | flow backend (RAFT / DIS) |

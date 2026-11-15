@@ -78,7 +78,7 @@ about 160 MB of download.
 > pip install opencv-python
 > ```
 
-If your material comes as TIFF sequences and there is no NVIDIA card
+If your material comes as image sequences and there is no NVIDIA card
 in the machine, this is the whole installation: section 6 ("RAFT —
 the optional GPU part") does not apply, and cineFlow will use the DIS
 flow estimator throughout. For video files, section 4 (ffmpeg) is
@@ -86,7 +86,7 @@ needed as well.
 
 ## 4. ffmpeg
 
-ffmpeg is needed if you work with video files rather than TIFF
+ffmpeg is needed if you work with video files rather than image
 sequences. cineFlow uses both `ffmpeg` and `ffprobe`.
 
 On Linux, `sudo apt install ffmpeg` brings both. On Windows, fetch a
@@ -121,7 +121,7 @@ The banner tells you what the program found:
 ```
 [RAFT] not available -- install PyTorch + torchvision
 [RAFT]   ModuleNotFoundError("No module named 'torchvision'")
-[flowQt] 2.0  --  Python 3.12.3, numpy 2.1.3, OpenCV 4.10.0
+[flowQt] 2.1  --  Python 3.12.3, numpy 2.1.3, OpenCV 4.10.0
 [flowQt] flow: DIS  (unavailable: RAFT)
 ```
 

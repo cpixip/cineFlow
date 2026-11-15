@@ -9,6 +9,7 @@ cineflow.json
 *_cineflow.json
 cineflow_folder.json
 cineflow_run.json
+compareQt_settings.json
 
 # --- output ----------------------------------------------------------------
 _clips/

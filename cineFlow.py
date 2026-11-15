@@ -39,10 +39,9 @@ APP_TAG = f"CINEFLOW v{__version__}"
 def _ff(name):
     return cineio.ff(name)
 
-from cineflow_defaults import VIDEO_EXTS
+from cineflow_defaults import VIDEO_EXTS, IMAGE_EXTS
 import cineio
 from cineio import scene_config_path, safe_name, SCENE_CONFIG_FILENAME
-TIFF_EXTS = (".tif", ".tiff")
 
 from cineflow_defaults import DEFAULT_CONFIG, MODES, EPS_GUARD
 
@@ -100,7 +99,7 @@ def load_scene_config(global_config, scene, forced=False):
     if forced:
         return cfg
 
-    override_path = scene_config_path(scene.input_path, scene.kind == "tiff_dir")
+    override_path = scene_config_path(scene.input_path, scene.kind == "image_dir")
     if os.path.isfile(override_path):
         try:
             override = _load_json(override_path)
@@ -134,11 +133,7 @@ class Scene:
     def __repr__(self):
         return f"Scene(kind={self.kind!r}, rel_path={self.rel_path!r})"
 
-def _dir_has_tiffs(path):
-    try:
-        return any(f.lower().endswith(TIFF_EXTS) for f in os.listdir(path))
-    except (FileNotFoundError, NotADirectoryError, PermissionError):
-        return False
+_dir_has_images = cineio.dir_has_images
 
 def _dir_has_videos(path):
     try:
@@ -158,9 +153,9 @@ def discover_scenes(input_path):
     if not os.path.isdir(input_path):
         sys.exit(f"[{APP_TAG}] ERROR: {input_path} does not exist.")
 
-    if _dir_has_tiffs(input_path):
+    if _dir_has_images(input_path):
         name = os.path.basename(os.path.normpath(input_path))
-        return [Scene("tiff_dir", input_path, name, name)]
+        return [Scene("image_dir", input_path, name, name)]
 
     scenes = []
 
@@ -174,8 +169,8 @@ def discover_scenes(input_path):
         full = os.path.join(input_path, entry)
         if not os.path.isdir(full):
             continue
-        if _dir_has_tiffs(full):
-            scenes.append(Scene("tiff_dir", full, entry, entry))
+        if _dir_has_images(full):
+            scenes.append(Scene("image_dir", full, entry, entry))
         elif _dir_has_videos(full):
             for f in sorted(os.listdir(full), key=_numeric_sort_key):
                 if f.lower().endswith(VIDEO_EXTS):
@@ -185,18 +180,16 @@ def discover_scenes(input_path):
                                         os.path.join(entry, base)))
 
     if not scenes:
-        sys.exit(f"[{APP_TAG}] ERROR: in {input_path} neither TIFFs nor "
-                 f"video files found.")
+        sys.exit(f"[{APP_TAG}] ERROR: in {input_path} neither image files "
+                 f"({', '.join(IMAGE_EXTS)}) nor video files found.")
 
     scenes.sort(key=lambda sc: _numeric_sort_key(sc.name))
     return scenes
 
 _numeric_sort_key = cineio.numeric_sort_key
 
-def list_tiffs(scene_dir):
-    files = [os.path.join(scene_dir, f) for f in os.listdir(scene_dir)
-             if f.lower().endswith(TIFF_EXTS)]
-    return sorted(files, key=_numeric_sort_key)
+def list_images(scene_dir):
+    return cineio.list_images(scene_dir)[0]
 
 def source_frame_offset(first_file):
     m = re.search(r"(\d+)\.[^.]+$", os.path.basename(first_file))
@@ -204,11 +197,9 @@ def source_frame_offset(first_file):
 
 def _read_sample_shape(f_path):
     try:
-        img = tifffile.imread(f_path)
-        return img.shape[:2]
+        return cineio.load_image(f_path, want_float=False).shape[:2]
     except Exception:
-        img = cineio.imread_unicode(f_path, cv2.IMREAD_UNCHANGED)
-        return img.shape[:2] if img is not None else None
+        return None
 
 def resolve_output_root(input_path, out_cli, config):
     if out_cli:
@@ -239,17 +230,12 @@ def estimate_output_bytes(scenes, config, output_format=None,
     exakt = True
     zeilen = []
     for sc in scenes:
-        fmt = output_format or ("tiff" if sc.kind == "tiff_dir" else "video")
+        fmt = output_format or ("tiff" if sc.kind == "image_dir" else "video")
 
-        if sc.kind == "tiff_dir":
-            try:
-                files = [os.path.join(sc.input_path, f)
-                         for f in os.listdir(sc.input_path)
-                         if f.lower().endswith(TIFF_EXTS)]
-            except OSError:
-                zeilen.append(f"  {sc.name}: not readable -- skipped")
-                continue
+        if sc.kind == "image_dir":
+            files = list_images(sc.input_path)
             if not files:
+                zeilen.append(f"  {sc.name}: no readable images -- skipped")
                 continue
             shape = _read_sample_shape(files[0])
             if shape is None:
@@ -342,7 +328,7 @@ def scene_output_dir(run_dir, scene):
     parts = [safe_name(p) for p in base.replace("\\", "/").split("/") if p]
     return os.path.join(run_dir, *parts)
 
-class AsyncTIFFReader:
+class AsyncImageReader:
     def __init__(self, file_list, height, width, start_frame=0, end_frame=None,
                  queue_size=120, read_timeout=0.1, num_workers=4):
         self.file_list = file_list
@@ -359,7 +345,7 @@ class AsyncTIFFReader:
         self._thread = None
 
     def _load(self, f_path):
-        img = cineio.load_tiff(f_path, want_float=False)
+        img = cineio.load_image(f_path, want_float=False)
         div = 65535.0 if img.dtype == np.uint16 else 255.0
         return img.astype(np.float32) / div
 
@@ -1270,7 +1256,7 @@ def open_scene_io(scene, config, run_dir, force_format=None,
                         color_prim=reader.color_prim,
                         color_range=reader.color_range)
     else:
-        files = list_tiffs(scene.input_path)
+        files = list_images(scene.input_path)
         if not files:
             return None, None, None
         sample = _read_sample_shape(files[0])
@@ -1278,10 +1264,10 @@ def open_scene_io(scene, config, run_dir, force_format=None,
             return None, None, None
         h, w = sample
         n = len(files)
-        reader = AsyncTIFFReader(files, h, w,
-                                 queue_size=config["reader_queue_size"],
-                                 read_timeout=config["reader_timeout"],
-                                 num_workers=config["reader_workers"])
+        reader = AsyncImageReader(files, h, w,
+                                  queue_size=config["reader_queue_size"],
+                                  read_timeout=config["reader_timeout"],
+                                  num_workers=config["reader_workers"])
         src_meta = dict(fps=float(config.get("tiff_fps",
                                              DEFAULT_CONFIG["tiff_fps"])),
                         color_space="bt709", color_trc=None,
@@ -1575,7 +1561,7 @@ config precedence (each level beats the previous):
   1  built-in defaults
   2  <input folder>/cineflow_folder.json
   3  --config <file>
-  4  the scene's own recipe:  <scene>/cineflow.json    (TIFF folder)
+  4  the scene's own recipe:  <scene>/cineflow.json    (image folder)
                               <scene>_cineflow.json    (video file)
 
   Unknown keys abort -- at levels 2 and 3 the whole run before anything
@@ -1588,7 +1574,8 @@ def parse_cli(argv):
         epilog=codec_table() + "\n" + CONFIG_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("input",
-                    help="Input: a video file, a folder of TIFFs, a folder "
+                    help="Input: a video file, a folder of images "
+                         "(TIFF, JPG or PNG -- output is always TIFF), a folder "
                          "of video files, or a parent folder holding such "
                          "scenes (mixed is fine). Sub-folders are scanned "
                          "ONE level deep.")
@@ -1611,14 +1598,14 @@ def parse_cli(argv):
                          "the tag and the measurement. pc = full (DaVinci: "
                          "'Data Levels: Full'), tv = limited. Untagged files "
                          "are measured, and that can go wrong on flat (Log) "
-                         "material -- then say it here. No effect on TIFF "
+                         "material -- then say it here. No effect on image "
                          "input. With a YUV output codec the same value is "
                          "written to the output file.")
     ap.add_argument("--output-format", default=None, choices=["tiff", "video"],
                     help="Force the output format. Default: follows the "
-                         "input (TIFF dir -> TIFFs, video file -> video). "
-                         "Forcing 'video' on TIFF input writes tiff_fps "
-                         "(default 18) -- there is no frame rate in a TIFF "
+                         "input (image dir -> TIFFs, video file -> video). "
+                         "Forcing 'video' on image input writes tiff_fps "
+                         "(default 18) -- there is no frame rate in an image "
                          "folder to read.")
     ap.add_argument("--yes", "-y", action="store_true",
                     help="Skip the one interactive question (not enough disk "

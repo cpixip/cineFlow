@@ -27,7 +27,8 @@ import cv2
 import numpy as np
 
 from cineflow_defaults import (DEFAULT_CONFIG, SCENE_PARAMS, EPS_GUARD,
-                               VIDEO_EXTS as _VIDEO_EXTS)
+                               VIDEO_EXTS as _VIDEO_EXTS,
+                               IMAGE_EXTS as _IMAGE_EXTS)
 import cineio
 
 USE_BURT = False
@@ -227,8 +228,8 @@ def resid_mag(flow, hi=10.0):
     mag = np.sqrt(flow[..., 0]**2 + flow[..., 1]**2)
     return heat(np.clip(mag / hi, 0, 1))
 
-def load_tiff(path):
-    return cineio.load_tiff(path)
+def load_image(path):
+    return cineio.load_image(path)
 
 VIDEO_EXTS = _VIDEO_EXTS
 
@@ -251,26 +252,29 @@ _guess_range = cineio.guess_range
 
 class FolderSource:
 
-    kind = "tiff"
+    kind = "images"
     depth = 16
     backend = "TIFF"
 
     CACHE_N = 9
 
     def __init__(self, folder):
-        import glob
         self.path = folder
-        self.files = sorted(glob.glob(os.path.join(folder, "*.tif")) +
-                            glob.glob(os.path.join(folder, "*.tiff")),
-                            key=cineio.numeric_sort_key)
+        self.files, fam = cineio.list_images(folder)
         if not self.files:
             raise ValueError(
-                f"no TIFF files in {folder} -- cineFlow reads "
-                f".tif/.tiff image sequences and .mov/.mkv/.mp4/.avi "
-                f"video files")
+                f"no image files in {folder} -- cineFlow reads "
+                f"{'/'.join(_IMAGE_EXTS)} image sequences and "
+                f"{'/'.join(VIDEO_EXTS)} video files")
+        self.backend = fam
+        self.depth = 8 if fam == "JPEG" else 16
         self.height = self.width = None
         self._cache = {}
         self._order = []
+        self._cache_n = self.CACHE_N
+
+    def want(self, n):
+        self._cache_n = max(self.CACHE_N, int(n))
 
     def __len__(self):
         return len(self.files)
@@ -287,10 +291,10 @@ class FolderSource:
                 pass
             self._order.append(i)
             return hit
-        img = load_tiff(self.files[i])
+        img = load_image(self.files[i])
         self._cache[i] = img
         self._order.append(i)
-        while len(self._order) > self.CACHE_N:
+        while len(self._order) > self._cache_n:
             self._cache.pop(self._order.pop(0), None)
         return img
 
@@ -523,7 +527,7 @@ def open_source(path):
         return VideoSourceCV(path)
     if os.path.isdir(path):
         return FolderSource(path)
-    raise ValueError(f"neither a TIFF folder nor a video file: {path}")
+    raise ValueError(f"neither an image folder nor a video file: {path}")
 
 def to_gray(rgb):
     return (0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2])
@@ -584,7 +588,7 @@ def _ensure_raft(which):
         _raft_models[which] = None
         if which not in _raft_warned:
             _raft_warned.add(which)
-            print(f"[RAFT] Laden fehlgeschlagen ({which}): {e}")
+            print(f"[RAFT] loading the model failed ({which}): {e}")
             print(f"[RAFT] -> computing with DIS although {which} was selected!")
         return None
 
@@ -1002,6 +1006,9 @@ def _apply_sharp_stage(data, cfg):
 def process_frame(idx, files, cfg, backend, active_view=None):
     data = {}
     n = len(files)
+
+    if hasattr(files, "want"):
+        files.want(2 * int(cfg["context"]) + 2)
 
     f0 = files[idx]
     data["input"] = f0

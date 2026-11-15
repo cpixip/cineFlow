@@ -14,11 +14,14 @@
 # Enquiries: license@pixelcircus.com
 
 
-VERSION = "2.0"
+VERSION = "2.1"
 
 EPS_GUARD = 1e-3
 
 VIDEO_EXTS = (".mov", ".mkv", ".mp4", ".avi")
+
+TIFF_EXTS = (".tif", ".tiff")
+IMAGE_EXTS = TIFF_EXTS + (".jpg", ".jpeg", ".png")
 
 DEFAULT_CONFIG = {
     "mode": "best",

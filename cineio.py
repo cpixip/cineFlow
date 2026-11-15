@@ -23,6 +23,7 @@ import threading
 import numpy as np
 
 from cineflow_defaults import VERSION as __version__
+from cineflow_defaults import TIFF_EXTS, IMAGE_EXTS
 
 _ffmpeg_tools = {}
 
@@ -102,6 +103,50 @@ def safe_name(name):
         out.append(ch if (ch.isalnum() or ch in "-_") else "_")
     cleaned = "".join(out).strip("_")
     return cleaned or "scene"
+
+_IMAGE_FAMILY = {".tif": "TIFF", ".tiff": "TIFF",
+                 ".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG"}
+_FAMILY_RANK = ("TIFF", "PNG", "JPEG")
+
+if set(_IMAGE_FAMILY) != set(IMAGE_EXTS):
+    raise KeyError(f"IMAGE_EXTS and _IMAGE_FAMILY do not agree: "
+                   f"{sorted(set(IMAGE_EXTS) ^ set(_IMAGE_FAMILY))}")
+
+_IGNORED_WARNED = set()
+
+def _image_family(name):
+    return _IMAGE_FAMILY.get(os.path.splitext(name)[1].lower())
+
+def dir_has_images(path):
+    try:
+        return any(_image_family(f) for f in os.listdir(path))
+    except (FileNotFoundError, NotADirectoryError, PermissionError):
+        return False
+
+def list_images(folder):
+    try:
+        names = os.listdir(folder)
+    except OSError:
+        return [], None
+    groups = {}
+    for f in names:
+        fam = _image_family(f)
+        if fam:
+            groups.setdefault(fam, []).append(f)
+    if not groups:
+        return [], None
+    fam = max(groups, key=lambda k: (len(groups[k]), -_FAMILY_RANK.index(k)))
+    if len(groups) > 1:
+        key = os.path.abspath(folder)
+        if key not in _IGNORED_WARNED:
+            _IGNORED_WARNED.add(key)
+            rest = ", ".join(f"{len(v)} {k}" for k, v in groups.items()
+                             if k != fam)
+            print(f"  [reader] NOTE: mixed image formats in "
+                  f"{os.path.basename(os.path.normpath(folder))} -- using "
+                  f"{len(groups[fam])} {fam}, ignoring {rest}")
+    files = [os.path.join(folder, f) for f in groups[fam]]
+    return sorted(files, key=numeric_sort_key), fam
 
 def ffprobe(path, timeout=60):
     p = subprocess.run(
@@ -216,10 +261,13 @@ class StderrDrain:
 
 _FALLBACK_WARNED = set()
 
-def load_tiff(path, want_float=True):
+def load_image(path, want_float=True):
     import errno
 
     path = str(path)
+    if not path.lower().endswith(TIFF_EXTS):
+        return _finish(_imread_direct(path), want_float)
+
     img = None
     try:
         import tifffile
@@ -234,13 +282,40 @@ def load_tiff(path, want_float=True):
         img = _imread_cv2(path, e)
     except Exception as e:
         img = _imread_cv2(path, e)
+    return _finish(img, want_float)
 
+def _finish(img, want_float):
     if img.ndim == 2:
         img = np.stack([img, img, img], axis=-1)
+    elif img.shape[2] > 3:
+        img = np.ascontiguousarray(img[:, :, :3])
     if not want_float:
         return img
     div = 65535.0 if img.dtype == np.uint16 else 255.0
     return img.astype(np.float32) / div
+
+def _imread_direct(path):
+    import cv2
+    import errno
+    try:
+        buf = np.fromfile(path, dtype=np.uint8)
+    except OSError as e:
+        if getattr(e, "errno", None) in (errno.EIO, errno.ENODEV, errno.ENXIO,
+                                         getattr(errno, "EREMOTEIO", -1)):
+            raise RuntimeError(f"cannot read {path}: {e} -- input storage "
+                               f"gone?")
+        raise RuntimeError(f"cannot read {path}: {e}")
+    img = cv2.imdecode(buf, cv2.IMREAD_UNCHANGED) if buf.size else None
+    if img is None:
+        raise RuntimeError(f"cannot decode {path} -- damaged file?")
+    return _bgr_to_rgb(img)
+
+def _bgr_to_rgb(img):
+    if img.ndim != 3:
+        return img
+    if img.shape[2] == 3:
+        return img[:, :, ::-1].copy()
+    return np.concatenate([img[:, :, 2::-1], img[:, :, 3:]], axis=2)
 
 def _imread_cv2(path, why):
     import cv2
@@ -255,7 +330,7 @@ def _imread_cv2(path, why):
     if img is None:
         raise RuntimeError(f"cannot read {path} with tifffile or cv2 "
                            f"-- damaged file?")
-    return img[:, :, ::-1].copy() if img.ndim == 3 else img
+    return _bgr_to_rgb(img)
 
 RECORD_NAME = "cineflow_run.json"
 

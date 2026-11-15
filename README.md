@@ -53,7 +53,7 @@ frames. These are kept apart.
 
 Both use the same computation, so what you tune in flowQt is what the batch produces.
 
-The standard exchange format is a directory of 16 bit TIFF files, but the software package can also operate on normal video files, writing FFV1, ProRes 4444 and 4444 XQ, or H.264.
+The standard exchange format is a directory of 16 bit TIFF files, but the software package can also operate on normal video files, writing FFV1, ProRes 4444 and 4444 XQ, or H.264. Folders of JPG or PNG frames are read as well; the output of an image folder is always TIFF.
 
 Also in this repository: **compareQt.py**, a small viewer for putting two
 versions of the same scene side by side — split, side by side, or with the
@@ -74,7 +74,7 @@ it a great deal faster.
 
 ## Status
 
-This is version 2.0 of the software: working software that one person uses on his own films, published in the hope that it is useful to others.
+This is version 2.1 of the software: working software that one person uses on his own films, published in the hope that it is useful to others.
 
 Some parts of the program — the dust removal modes in particular —
 work but have had far less attention than the degraining itself.

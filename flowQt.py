@@ -46,7 +46,7 @@ from PyQt5.QtCore import (QEvent, QObject, QPoint, QRect, QRectF,
 from PyQt5.QtGui import (QColor, QCursor, QImage, QPainter,
                          QPalette, QPen)
 from PyQt5.QtWidgets import (QApplication, QComboBox,
-                             QDialog, QDoubleSpinBox, QFileDialog,
+                             QDialog, QDoubleSpinBox, QFileDialog, QFrame,
                              QGridLayout,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow,
@@ -80,6 +80,26 @@ def _u8(x):
 
 def _rgb(d):
     return cv2.cvtColor(_u8(d), cv2.COLOR_RGB2BGR)
+
+SHADOW_STEPS = (0.0, 1.0, 2.0, 3.0, 4.0)
+_SHADOW_N = 4096
+_shadow_luts = {}
+
+def _shadow_lut(ev):
+    lut = _shadow_luts.get(ev)
+    if lut is None:
+        v = np.linspace(0.0, 1.0, _SHADOW_N)
+        L = np.where(v < 0.081, v / 4.5, ((v + 0.099) / 1.099) ** (1 / 0.45))
+        a = 2.0 ** ev
+        L = a * L / (1.0 + (a - 1.0) * L)
+        out = np.where(L < 0.018, 4.5 * L, 1.099 * np.power(L, 0.45) - 0.099)
+        lut = np.clip(out, 0.0, 1.0).astype(np.float32)
+        _shadow_luts[ev] = lut
+    return lut
+
+def _rgb_shadow(d, ev):
+    i = (np.clip(d, 0.0, 1.0) * (_SHADOW_N - 1) + 0.5).astype(np.int32)
+    return cv2.cvtColor(_u8(_shadow_lut(ev)[i]), cv2.COLOR_RGB2BGR)
 
 RESULT_VIEW = "output"
 
@@ -125,8 +145,18 @@ FLOW_DT_SIGN = {
     "warped_flow_bw_rel": -1,
 }
 
-def display_fn(key, cfg):
+def _shadow_note(steps):
+    st = sorted(steps)
+    if st == [0.0]:
+        return ""
+    if len(st) == 1:
+        return f", display shadows +{st[0]:g} EV"
+    return ", display shadows varied: " + "/".join(f"+{x:g}" for x in st) + " EV"
+
+def display_fn(key, cfg, shadow_ev=0.0):
     fn = DISPLAY.get(key, _rgb)
+    if fn is _rgb and shadow_ev > 0:
+        return lambda d: _rgb_shadow(d, shadow_ev)
     sign = FLOW_DT_SIGN.get(key)
     if sign is None:
         return fn
@@ -614,6 +644,7 @@ class Canvas(QLabel):
         self._drag_split = False
         self._drop_hint = False
         self._message = None
+        self.badge = ""
 
     dropped = pyqtSignal(str)
     droppedConfig = pyqtSignal(str)
@@ -859,6 +890,13 @@ class Canvas(QLabel):
         hard = (not self.is_fit()) and self.ZOOM_LEVELS[self.zoom_i] >= 2.0
         p.setRenderHint(QPainter.SmoothPixmapTransform, not hard)
         p.drawImage(drect, qim, srect)
+        if self.badge:
+            f = p.font(); f.setPointSize(10); p.setFont(f)
+            r = self.rect().adjusted(0, 6, -10, 0)
+            p.setPen(QPen(QColor(0, 0, 0)))
+            p.drawText(r.translated(1, 1), Qt.AlignRight | Qt.AlignTop, self.badge)
+            p.setPen(QPen(QColor(255, 200, 80)))
+            p.drawText(r, Qt.AlignRight | Qt.AlignTop, self.badge)
 
     SPLIT_GRAB = 12
 
@@ -925,12 +963,55 @@ class Canvas(QLabel):
         self.update()
 
 class TextureHistogram(QWidget):
+
+    dragged = pyqtSignal(float)
+    released = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setMinimumHeight(90)
         self._hist = None
         self._pcts = {}
         self._texref = None
+        self._drag = False
+        self._limits = None
+        self.setCursor(Qt.SizeHorCursor)
+        self.setToolTip("Drag to set 'full'.")
+
+    def set_limits(self, lo, hi):
+        self._limits = (float(lo), float(hi))
+
+    def _value_at(self, x):
+        if self._hist is None:
+            return None
+        _counts, edges = self._hist
+        lo, hi = float(edges[0]), float(edges[-1])
+        v = lo + (hi - lo) * max(0.0, min(1.0, x / max(1, self.width())))
+        if self._limits:
+            v = max(self._limits[0], min(self._limits[1], v))
+        return v
+
+    def mousePressEvent(self, ev):
+        if ev.button() != Qt.LeftButton or self._hist is None:
+            return
+        self._drag = True
+        v = self._value_at(ev.x())
+        if v is not None:
+            self.set_texref(v)
+            self.dragged.emit(v)
+
+    def mouseMoveEvent(self, ev):
+        if not self._drag:
+            return
+        v = self._value_at(ev.x())
+        if v is not None:
+            self.set_texref(v)
+            self.dragged.emit(v)
+
+    def mouseReleaseEvent(self, ev):
+        if self._drag:
+            self._drag = False
+            self.released.emit()
 
     def set_texture(self, tex):
         if tex is None:
@@ -1381,6 +1462,7 @@ class AutoplayRecorder:
 
     def __init__(self, m):
         self.m = m
+        self.rec_shadow = {0.0}
         self.direction = 0
         self.step = 1
         self.writer = None
@@ -1544,6 +1626,7 @@ class AutoplayRecorder:
         self.size = (w, h)
         self.start_idx = self.m.idx
         self.view_key = self.m._current_view()
+        self.rec_shadow = {self.m.shadow_ev}
         self.writer.write(frame)
         self.count = 1
         self.written_idx = self.m.idx
@@ -1563,6 +1646,7 @@ class AutoplayRecorder:
         self.writer.write(frame)
         self.count += 1
         self.written_idx = self.m.idx
+        self.rec_shadow.add(self.m.shadow_ev)
 
     def _write_record(self):
         try:
@@ -1576,7 +1660,8 @@ class AutoplayRecorder:
                 self.path, self.m.cfg, scene, self.m.folder,
                 f"flowQt {__version__}",
                 runner={"path": "flowQt/rec", "flow": eff,
-                        "format": self.fmt, "capture": "screen, 8 bit"},
+                        "format": self.fmt, "capture": "screen, 8 bit"
+                        + _shadow_note(self.rec_shadow)},
                 frames=self.count,
                 frame_range=(self.start_idx, end_idx),
                 view=self.view_key,
@@ -1811,6 +1896,7 @@ class Main(QMainWindow):
         self._last_off = 1
         self._slider_moved = False
         self._split_unavailable = None
+        self.shadow_ev = 0.0
         self._hf_cache_key = None
         self._hf_cache_txt = ""
         self.cfg["_neighbor_offset"] = 1
@@ -1926,6 +2012,12 @@ class Main(QMainWindow):
             w.set_value(float(p90))
             self._param_changed("sharp_full", float(p90))
             self._param_released("sharp_full")
+
+    def _texref_dragged(self, v):
+        w = self.params.get("sharp_full")
+        if w is not None:
+            w.set_value(float(v))
+        self._param_changed("sharp_full", float(v))
 
     def _mk_param(self, key, label, lo, hi, step, dec=3, tip="", log=False,
                   expensive=False, integer=False):
@@ -2186,6 +2278,14 @@ class Main(QMainWindow):
         self.statusBar().showMessage("ready")
         self._ui_ready = True
 
+    @staticmethod
+    def _vsep():
+        sep = QFrame()
+        sep.setFrameShape(QFrame.VLine)
+        sep.setFrameShadow(QFrame.Plain)
+        sep.setStyleSheet("color: #4a4f56;")
+        return sep
+
     def _build_view_bar(self, left):
         top = QHBoxLayout()
         self.cb_view = QComboBox()
@@ -2227,6 +2327,27 @@ class Main(QMainWindow):
         top.addWidget(self.cb_peek)
         top.addSpacing(12)
         top.addWidget(b_cyc)
+        top.addSpacing(8)
+        top.addWidget(self._vsep())
+        top.addSpacing(8)
+        self.lbl_shadow = QLabel("shadows +0.0")
+        self.lbl_shadow.setFixedWidth(
+            self.fontMetrics().horizontalAdvance("shadows +4.0") + 4)
+        top.addWidget(self.lbl_shadow)
+        self.sl_shadow = QSlider(Qt.Horizontal)
+        self.sl_shadow.setRange(0, int(SHADOW_STEPS[-1] * 10))
+        self.sl_shadow.setFixedWidth(70)
+        self.sl_shadow.setFocusPolicy(Qt.NoFocus)
+        self.sl_shadow.setToolTip(
+            "Display only: lift the shadows of the image views by 0…4 EV\n"
+            "(white stays white); flow and trust maps are not touched. p and REC record\n"
+            "what is shown and note the step. Keys s / Shift+s: next / previous\n"
+            "whole EV step.")
+        self.sl_shadow.setValue(int(round(getattr(self, "shadow_ev", 0.0) * 10)))
+        self.sl_shadow.valueChanged.connect(lambda v: self._shadow_set(v / 10.0))
+        top.addWidget(self.sl_shadow)
+        top.addSpacing(8)
+        top.addWidget(self._vsep())
         top.addStretch(1)
 
         self.cb_splitref = QComboBox()
@@ -2400,8 +2521,10 @@ class Main(QMainWindow):
 
     def _build_scene_buttons(self, right):
         btns = QHBoxLayout()
-        b_open = QPushButton("Load Tif")
-        b_open.setToolTip("Open a folder of TIFF frames (one scene).\n\n"
+        b_open = QPushButton("Load Images")
+        b_open.setToolTip("Open a folder of image frames (one scene):\n"
+                          "TIFF, JPG or PNG. A mixed folder uses the most\n"
+                          "frequent format and ignores the rest.\n\n"
                           "Video files use the button next to it -- a\n"
                           "QFileDialog can offer folders OR files, not both.")
         b_open.clicked.connect(self._choose_folder)
@@ -2616,6 +2739,12 @@ class Main(QMainWindow):
         b_p90.setToolTip("Sets 'full' to the 90th percentile of the current\n"
                          "texture map -- the usual starting point.")
         b_p90.clicked.connect(self._texref_to_p90)
+        self._hist_tex.dragged.connect(self._texref_dragged)
+        self._hist_tex.released.connect(
+            lambda: self._param_released("sharp_full"))
+        _pf = self.params.get("sharp_full")
+        if _pf is not None:
+            self._hist_tex.set_limits(_pf.lo, _pf.hi)
         hrow.addWidget(self._lbl_pct, 1)
         hrow.addWidget(b_p90)
         _hl.addLayout(hrow)
@@ -2695,7 +2824,7 @@ class Main(QMainWindow):
                 f"View \u201c{key}\u201d is not computed.", 4000)
             return
 
-        fn = display_fn(key, self.cfg)
+        fn = display_fn(key, self.cfg, self.shadow_ev)
         img = fn(self.data[data_key(key)])
         if img.ndim == 2:
             img = np.stack([img] * 3, axis=-1)
@@ -2711,7 +2840,8 @@ class Main(QMainWindow):
                    f"_{eff}_{self.cfg.get('mode', 'best')}"
                    f"_sc{self.cfg['downscale']:g}"
                    f"_ctx{self.cfg['context']}"
-                   f"_sx{self.cfg['sharp_amount']:g}")
+                   f"_sx{self.cfg['sharp_amount']:g}"
+                   + (f"_shadow+{self.shadow_ev:g}EV" if self.shadow_ev else ""))
             p = os.path.join(out, tag + ".png")
             n = 1
             while os.path.exists(p):
@@ -2974,6 +3104,8 @@ class Main(QMainWindow):
         elif k == Qt.Key_U:     self.ar.toggle_record()
         elif k == Qt.Key_P:     self._save_view()
         elif k == Qt.Key_T:     self._toggle_hist()
+        elif k == Qt.Key_S:
+            self._shadow_step(-1 if (mods & Qt.ShiftModifier) else +1)
         elif Qt.Key_1 <= k <= Qt.Key_9:
             i = k - Qt.Key_1
             if i < len(self.cycle):
@@ -2984,6 +3116,29 @@ class Main(QMainWindow):
         else:
             return False
         return True
+
+    def _shadow_step(self, d):
+        steps = SHADOW_STEPS
+        ev = self.shadow_ev
+        if d > 0:
+            nxt = [x for x in steps if x > ev + 1e-6]
+            ev = nxt[0] if nxt else steps[0]
+        else:
+            prv = [x for x in steps if x < ev - 1e-6]
+            ev = prv[-1] if prv else steps[-1]
+        self.sl_shadow.setValue(int(round(ev * 10)))
+
+    def _shadow_set(self, ev):
+        ev = round(float(ev), 1)
+        self.lbl_shadow.setText(f"shadows +{ev:.1f}")
+        if ev == self.shadow_ev:
+            return
+        self.shadow_ev = ev
+        self.statusBar().showMessage(
+            "display shadows off" if not self.shadow_ev else
+            f"display shadows +{self.shadow_ev:g} EV (view only -- p/REC record it)",
+            3000)
+        self._redraw()
 
     def _dispatch(self, tier, reason):
         if not self.files:
@@ -3105,6 +3260,9 @@ class Main(QMainWindow):
             ("", "  drop a config .json on the canvas to apply it"),
             ("Esc", "leave the curve preview, back to the cycle"),
             ("t", "texture histogram overlay on/off"),
+            ("s / Shift+s", "display shadows: next / previous whole EV step (0…4 EV;"),
+            ("", "  in between with the Shadows slider; view only;"),
+            ("", "  p and REC record what is shown and note the step)"),
             ("g", "detail filter (guided/gauss)"),
             ("r", "Backend (RAFT/DIS)"),
             ("", ""),
@@ -3224,19 +3382,59 @@ class Main(QMainWindow):
             return
 
         vals = {k: v for k, v in doc.items() if not str(k).startswith("_")}
+
+        chain = doc.get("_chain")
+        chosen = None
+        if isinstance(chain, list) and len(chain) > 1:
+            chosen = self._pick_chain_run(chain, os.path.basename(path))
+            if chosen is None:
+                self.statusBar().showMessage("Load cancelled.", 4000)
+                return
+            vals = {k: v for k, v in (chain[chosen].get("params") or {}).items()
+                    if not str(k).startswith("_")}
+
         if not vals:
             self.statusBar().showMessage(
                 f"{os.path.basename(path)}: no parameters in it.", 6000)
             return
         self._apply_preset(vals, f"Config {os.path.basename(path)}")
 
-        run = doc.get("_run") if isinstance(doc.get("_run"), dict) else None
-        if run:
+        run = chain[chosen] if chosen is not None else doc.get("_run")
+        if isinstance(run, dict):
             origin = run.get("origin") or run.get("source") or "?"
             nr = run.get("run", "?")
+            total = (f" of {len(chain)}"
+                     if isinstance(chain, list) and len(chain) > 1 else "")
             self.statusBar().showMessage(
-                f"run log (run {nr}) applied \u2014 "
+                f"run log (run {nr}{total}) applied \u2014 "
                 f"source was: {origin}", 10000)
+
+    def _pick_chain_run(self, chain, name):
+        from PyQt5.QtWidgets import QInputDialog
+        items = []
+        for i, step in enumerate(chain):
+            nr = step.get("run", i + 1)
+            pr = step.get("params") or {}
+            flow = pr.get("flow_backend", "?")
+            txt = (f"{pr.get('mode', '?')}, {flow}, "
+                   f"downscale {pr.get('downscale', '?')}, "
+                   f"context {pr.get('context', '?')}")
+            amt = pr.get("sharp_amount")
+            if amt is not None:
+                txt += (", enhance off" if float(amt) == 0 else
+                        f", {pr.get('detail_filter', '?')} amount {amt:g}")
+            ran = (step.get("runner") or {}).get("flow")
+            if ran and ran != flow:
+                txt += f"   [ran as {ran}]"
+            when = str(step.get("time", ""))[:10]
+            items.append(f"run {nr}:  {txt}" + (f"   ({when})" if when else ""))
+        text, ok = QInputDialog.getItem(
+            self, "Load recipe",
+            f"{name} holds {len(chain)} runs.\nWhich one?",
+            items, len(items) - 1, False)
+        if not ok:
+            return None
+        return items.index(text)
 
     def _apply_recipe(self, d, label, dispatch=True):
         unknown = []
@@ -3509,7 +3707,7 @@ class Main(QMainWindow):
                     f"View \u201c{key}\u201d is not computed for this "
                     f"state.")
             return
-        fn = display_fn(key, self.cfg)
+        fn = display_fn(key, self.cfg, self.shadow_ev)
         img = fn(self.data[data_key(key)])
         ref = None
         ref_key = self._split_ref_key()
@@ -3517,10 +3715,12 @@ class Main(QMainWindow):
         if ref_key is not None:
             ref_img = self.data.get(ref_key)
             if ref_img is not None:
-                ref = display_fn(ref_key, self.cfg)(ref_img)
+                ref = display_fn(ref_key, self.cfg, self.shadow_ev)(ref_img)
             else:
                 self._split_unavailable = ref_key
         self._sync_split_labels()
+        self.canvas.badge = (f"shadows +{self.shadow_ev:g} EV"
+                             if self.shadow_ev else "")
         self.canvas.set_images(img, ref, view_key=key, clear_ref=(ref is None))
         self._update_stats()
 
@@ -3624,7 +3824,7 @@ class Main(QMainWindow):
 
     def _choose_folder(self):
         d = QFileDialog.getExistingDirectory(
-            self, "Choose TIFF folder", self._start_dir())
+            self, "Choose image folder (TIFF/JPG/PNG)", self._start_dir())
         if d:
             self._load_folder(d)
 

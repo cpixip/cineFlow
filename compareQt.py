@@ -16,6 +16,7 @@
 
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -35,10 +36,12 @@ except ImportError:
 
 import flowcore as fcore
 import cineio
+from cineflow_defaults import VIDEO_EXTS, IMAGE_EXTS
 
 VERSION = "0.1"
 DIFF_SCALER = 6
 LABEL_COLOR = (255, 255, 0)
+LABEL_EDGE = 2
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              "compareQt_settings.json")
 LAYOUTS = (("a",      "A only          (Up)"),
@@ -46,11 +49,19 @@ LAYOUTS = (("a",      "A only          (Up)"),
            ("split",  "A | B  vertical split"),
            ("hsplit", "A / B  horizontal split"),
            ("side",   "A \u00b7 B  side by side"),
-           ("diff",   "A | B  + diff"))
+           ("diff",   "A | B  + diff"),
+           ("diffonly", "diff only"))
 HEIGHTS = (("orig", "original height"), ("1080", "1080 px"), ("720", "720 px"))
 CODECS = (("avi", "AVI  \u00b7  MJPG"),
-          ("mp4", "MP4  \u00b7  MPEG-4"),
+          ("mp4", "MP4  \u00b7  H.264"),
           ("png", "PNG image sequence"))
+
+X264_ARGS = ["-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p",
+             "-c:v", "libx264", "-preset", "slow", "-crf", "16",
+             "-tune", "grain", "-profile:v", "high", "-pix_fmt", "yuv420p",
+             "-color_range", "tv", "-colorspace", "bt709",
+             "-color_primaries", "bt709", "-color_trc", "bt709",
+             "-movflags", "+faststart"]
 
 def to_u8(img):
     return np.clip(img * 255.0 + 0.5, 0, 255).astype(np.uint8)
@@ -61,14 +72,27 @@ def put_label(img, text, x=20, y=None):
     h = img.shape[0]
     scale = max(0.6, h / 900.0)
     y = y or int(28 * scale + 12)
+    thick = max(1, int(2 * scale))
+    r = max(1, int(round(LABEL_EDGE * scale)))
+    d = max(1, int(round(r * 0.7)))
+    for dx, dy in ((r, 0), (-r, 0), (0, r), (0, -r), (d, d), (d, -d), (-d, d), (-d, -d)):
+        cv2.putText(img, text, (x + dx, y + dy), cv2.FONT_HERSHEY_SIMPLEX, scale,
+                    (0, 0, 0), thick, cv2.LINE_AA)
     cv2.putText(img, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, scale,
-                LABEL_COLOR, max(1, int(2 * scale)), cv2.LINE_AA)
+                LABEL_COLOR, thick, cv2.LINE_AA)
     return img
 
-def compose(layout, a, b, title_a, title_b, scaler=DIFF_SCALER):
+def diff_image(a, b, scaler, swapped=False):
+    diff = 128 + int(scaler) * (a.astype(np.int16) - b.astype(np.int16))
+    diff = np.clip(diff, 0, 255).astype(np.uint8)
+    return put_label(diff, f"{'B - A' if swapped else 'A - B'}  x{int(scaler)}")
+
+def compose(layout, a, b, title_a, title_b, scaler=DIFF_SCALER, swapped=False):
     h, w = a.shape[:2]
     if b is None:
         b = np.full_like(a, 96)
+    if layout == "diffonly":
+        return diff_image(a, b, scaler, swapped)
     if layout == "a":
         return put_label(a.copy(), title_a or "A")
     if layout == "b":
@@ -90,10 +114,7 @@ def compose(layout, a, b, title_a, title_b, scaler=DIFF_SCALER):
     put_label(split, title_b, x=mid + 20)
     if layout == "split":
         return split
-    diff = 128 + int(scaler) * (a.astype(np.int16) - b.astype(np.int16))
-    diff = np.clip(diff, 0, 255).astype(np.uint8)
-    put_label(diff, f"A - B  x{int(scaler)}")
-    return np.hstack((split, diff))
+    return np.hstack((split, diff_image(a, b, scaler, swapped)))
 
 def fit_height(img, height):
     if not height or img.shape[0] == height:
@@ -104,6 +125,63 @@ def fit_height(img, height):
 def even(img):
     h, w = img.shape[:2]
     return img[:h - h % 2, :w - w % 2]
+
+def read_back(path, n):
+    cap = cv2.VideoCapture(path)
+    ok = cap.isOpened()
+    got = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0) if ok else 0
+    ok = ok and cap.read()[0]
+    cap.release()
+    if not ok:
+        raise RuntimeError(
+            f"the file was written ({n} frames) but cannot be read "
+            f"back -- no video track. Try the PNG sequence instead.")
+    return got
+
+class FFmpegOut:
+
+    verified = None
+
+    def __init__(self, path, w, h, fps, status=print):
+        self.path = os.path.normpath(os.path.splitext(path)[0] + ".mp4")
+        self.n, self.size = 0, (w, h)
+        fps = round(float(fps or 18.0), 3) or 18.0
+        cmd = [cineio.tool("ffmpeg"), "-hide_banner", "-v", "error", "-y",
+               "-f", "rawvideo", "-pix_fmt", "rgb24",
+               "-video_size", f"{w}x{h}", "-framerate", f"{fps:g}",
+               "-i", "-"] + X264_ARGS + [self.path]
+        flags = 0x08000000 if os.name == "nt" else 0
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                     stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.PIPE,
+                                     creationflags=flags)
+        self.drain = cineio.StderrDrain(self.proc)
+        self.how = "ffmpeg libx264"
+
+    def write(self, rgb):
+        if (rgb.shape[1], rgb.shape[0]) != self.size:
+            rgb = cv2.resize(rgb, self.size, interpolation=cv2.INTER_AREA)
+        try:
+            self.proc.stdin.write(np.ascontiguousarray(rgb).tobytes())
+        except (BrokenPipeError, OSError):
+            self.proc.wait()
+            raise RuntimeError(f"ffmpeg stopped: {self.drain.text().strip()}")
+        self.n += 1
+
+    def close(self):
+        if self.proc is None:
+            return
+        proc, self.proc = self.proc, None
+        try:
+            proc.stdin.close()
+        except OSError:
+            pass
+        rc = proc.wait()
+        if rc != 0:
+            raise RuntimeError(f"ffmpeg exit code {rc}: "
+                               f"{self.drain.text().strip()}")
+        if self.n:
+            self.verified = read_back(self.path, self.n)
 
 class VideoOut:
 
@@ -135,18 +213,8 @@ class VideoOut:
             return
         self.cv.release()
         self.cv = None
-        if not self.n:
-            return
-        cap = cv2.VideoCapture(self.path)
-        ok = cap.isOpened()
-        got = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0) if ok else 0
-        ok = ok and cap.read()[0]
-        cap.release()
-        if not ok:
-            raise RuntimeError(
-                f"the file was written ({self.n} frames) but cannot be read "
-                f"back -- no video track. Try the PNG sequence instead.")
-        self.verified = got
+        if self.n:
+            self.verified = read_back(self.path, self.n)
 
 class SeqOut:
 
@@ -164,10 +232,11 @@ class SeqOut:
         self.n += 1
 
     def cmd(self):
-        return (f'ffmpeg -framerate {self.fps:g} -i "{os.path.join(self.dir, "frame_%06d.png")}" '
-                f'-c:v libx264 -crf 15 -preset slow -pix_fmt yuv420p '
-                f'-color_range tv -colorspace bt709 -color_primaries bt709 '
-                f'-color_trc bt709 -movflags +faststart -y "{self.out}"')
+        args = [cineio.tool("ffmpeg") or "ffmpeg", "-framerate",
+                f"{self.fps:g}", "-i",
+                os.path.join(self.dir, "frame_%06d.png")] + X264_ARGS + \
+               ["-y", self.out]
+        return " ".join(f'"{a}"' if " " in a else a for a in args)
 
     def close(self):
         if self.n:
@@ -262,7 +331,7 @@ class Canvas(QWidget):
         if self._qimg is None:
             p.setPen(Qt.gray)
             p.drawText(self.rect(), Qt.AlignCenter,
-                       "drop two sources above -- a folder of TIFFs or a video file")
+                       "drop two sources above -- an image folder or a video file")
             return
         s = self.scale()
         w, h = int(self._qimg.width() * s), int(self._qimg.height() * s)
@@ -303,7 +372,7 @@ class DropBox(QGroupBox):
         self.setAcceptDrops(True)
         lay = QVBoxLayout(self)
         row = QHBoxLayout()
-        self.path_lbl = QLabel("drop a TIFF folder or a video file here")
+        self.path_lbl = QLabel("drop an image folder (TIFF/JPG/PNG) or a video file here")
         self.path_lbl.setStyleSheet("color: gray")
         self.path_lbl.setWordWrap(True)
         row.addWidget(self.path_lbl, 1)
@@ -327,16 +396,21 @@ class DropBox(QGroupBox):
         for url in ev.mimeData().urls():
             p = url.toLocalFile()
             if p:
+                if os.path.isfile(p) and p.lower().endswith(IMAGE_EXTS):
+                    p = os.path.dirname(p)
                 self.on_path(p)
                 break
 
     def _browse(self):
+        exts = VIDEO_EXTS + IMAGE_EXTS
+        pat = " ".join(f"*{e} *{e.upper()}" for e in exts)
         p, _f = QFileDialog.getOpenFileName(
-            self, "Video file (for a TIFF folder, drop it or pick any file in it)",
-            "", "Video or TIFF (*.mp4 *.mov *.mkv *.avi *.tif *.tiff);;All files (*)")
+            self, "Video file (for an image folder, drop it or pick any "
+                  "file in it)",
+            "", f"Video or images ({pat});;All files (*)")
         if not p:
             return
-        if p.lower().endswith((".tif", ".tiff")):
+        if p.lower().endswith(IMAGE_EXTS):
             p = os.path.dirname(p)
         self.on_path(p)
 
@@ -346,6 +420,7 @@ class DropBox(QGroupBox):
 
 class Main(QMainWindow):
     NAV_STEP = {Qt.NoModifier: 1, Qt.ShiftModifier: 10, Qt.ControlModifier: 100}
+    PLAY_TXT = {"rev": "\u25c0", "stop": "\u25a0", "fwd": "\u25b6"}
 
     def __init__(self):
         super().__init__()
@@ -356,8 +431,10 @@ class Main(QMainWindow):
         self._cancel = False
         self._rendering = False
         self.settings = self._load_settings()
+        self._play_dir, self._play_speed = 0, 1
         self._build()
         self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
         self._timer.timeout.connect(self._tick)
         self._apply_settings()
 
@@ -454,7 +531,8 @@ class Main(QMainWindow):
                                   "difference shows less.")
         self.cb_codec.setToolTip(
             "AVI / MJPG          every frame a JPEG, ~95 %\n"
-            "MP4 / MPEG-4     inter-frame, smaller files\n"
+            "MP4 / H.264        via ffmpeg (libx264, grain-tuned) -- plays in\n"
+            "                          browsers; without ffmpeg: cv2 mp4v, which does not\n"
             "PNG sequence   lossless, plus an ffmpeg line on the console")
         gl.addWidget(self.cb_height)
         self.btn_render = QPushButton("Render \u2026")
@@ -476,29 +554,38 @@ class Main(QMainWindow):
         nav = QHBoxLayout()
         b = QPushButton("<")
         b.setFixedWidth(30)
-        b.clicked.connect(lambda: self._goto(self.idx - 1))
+        b.clicked.connect(lambda: self._step(-1))
         nav.addWidget(b)
         self.slider = QSlider(Qt.Horizontal)
+        self.slider.sliderPressed.connect(self._play_stop)
         self.slider.valueChanged.connect(self._goto)
         nav.addWidget(self.slider, 1)
         b = QPushButton(">")
         b.setFixedWidth(30)
-        b.clicked.connect(lambda: self._goto(self.idx + 1))
+        b.clicked.connect(lambda: self._step(1))
         nav.addWidget(b)
         self.lbl_frame = QLabel("0 / 0")
         self.lbl_frame.setMinimumWidth(90)
         nav.addWidget(self.lbl_frame)
-        self.btn_play = QPushButton("play")
-        self.btn_play.setFixedWidth(50)
-        self.btn_play.clicked.connect(self._play_pause)
-        nav.addWidget(self.btn_play)
+        self.btn_play = {}
+        for key, tip in (("rev", "Play backwards (j); again: 2x, 4x"),
+                         ("stop", "Stop (k)"),
+                         ("fwd", "Play forwards (l, space); again: 2x, 4x")):
+            b = QPushButton(self.PLAY_TXT[key])
+            b.setFixedWidth(52)
+            b.setToolTip(tip)
+            b.clicked.connect(lambda _c=False, k=key: self._play_cmd(k))
+            nav.addWidget(b)
+            self.btn_play[key] = b
         self.cb_loop = QCheckBox("loop")
-        self.cb_loop.setToolTip("Play the overlap of A and B round and round.")
+        self.cb_loop.setToolTip("Play the overlap of A and B round and round, "
+                                "in either direction.")
         nav.addWidget(self.cb_loop)
         v.addLayout(nav)
 
         hint = QLabel("\u2190/\u2192 frame \u00b7 Shift \u00b110 \u00b7 Ctrl \u00b1100 "
-                      "\u00b7 Home/End \u00b7 Up/Down: A / B \u00b7 space: play "
+                      "\u00b7 Home/End \u00b7 Up/Down: A \u21c4 B \u00b7 j/k/l: play back / "
+                      "stop / play (again: 2\u00d7, 4\u00d7) \u00b7 space: play / pause "
                       "\u00b7 p: snapshot \u00b7 wheel: zoom \u00b7 double-click: fit / 1x "
                       "\u00b7 Esc: cancel render")
         hint.setStyleSheet("color: #8a9099")
@@ -517,6 +604,9 @@ class Main(QMainWindow):
         if k == Qt.Key_Escape and self._rendering:
             self._cancel = True
             return
+        if k in (Qt.Key_Left, Qt.Key_Right, Qt.Key_Home, Qt.Key_End,
+                 Qt.Key_PageUp, Qt.Key_PageDown):
+            self._play_stop()
         if k in (Qt.Key_Left, Qt.Key_Right):
             mods = ev.modifiers() & (Qt.ShiftModifier | Qt.ControlModifier)
             step = self.NAV_STEP.get(mods, 1)
@@ -530,11 +620,19 @@ class Main(QMainWindow):
         elif k == Qt.Key_PageDown:
             self._goto(self.idx + 10)
         elif k == Qt.Key_Space:
-            self._play_pause()
-        elif k == Qt.Key_Up:
-            self._set_layout("a")
-        elif k == Qt.Key_Down:
-            self._set_layout("b")
+            self._play_cmd("toggle")
+        elif k == Qt.Key_L:
+            self._play_cmd("fwd")
+        elif k == Qt.Key_J:
+            self._play_cmd("rev")
+        elif k == Qt.Key_K:
+            self._play_cmd("stop")
+        elif k in (Qt.Key_Up, Qt.Key_Down):
+            cur = self._layout()
+            if cur in ("a", "b"):
+                self._set_layout("b" if cur == "a" else "a")
+            else:
+                self._set_layout("a" if k == Qt.Key_Up else "b")
         elif k == Qt.Key_P:
             self._snapshot()
         else:
@@ -646,11 +744,14 @@ class Main(QMainWindow):
         if a is None:
             return None
         ta, tb = self.box_a.title.text(), self.box_b.title.text()
+        swapped = False
         if self.cb_swap.isChecked():
             if b is not None:
                 a, b = b, a
                 ta, tb = tb, ta
-        return compose(self._layout(), a, b, ta, tb, self.diff_scaler.value())
+                swapped = True
+        return compose(self._layout(), a, b, ta, tb, self.diff_scaler.value(),
+                       swapped)
 
     def _redraw(self, *_):
         self.canvas.set_image(self._composed(self.idx))
@@ -678,23 +779,60 @@ class Main(QMainWindow):
         self.slider.blockSignals(False)
         self._redraw()
 
-    def _play_pause(self):
-        if self._timer.isActive():
-            self._timer.stop()
-            self.btn_play.setText("play")
-        elif self.a is not None:
-            self._timer.start(int(1000 / self.a.fps))
-            self.btn_play.setText("stop")
+    def _step(self, d):
+        self._play_stop()
+        self._goto(self.idx + d)
+
+    def _play_cmd(self, cmd):
+        if self.a is None or self._rendering:
+            return
+        if cmd == "stop":
+            self._play_stop()
+        elif cmd == "toggle":
+            if self._play_dir:
+                self._play_stop()
+            else:
+                self._play_start(1, 1)
+        else:
+            d = 1 if cmd == "fwd" else -1
+            self._play_start(d, min(4, self._play_speed * 2) if self._play_dir == d else 1)
+
+    def _play_show(self):
+        for key, b in self.btn_play.items():
+            on = (key == "fwd" and self._play_dir > 0) or (key == "rev" and self._play_dir < 0)
+            sp = f" {self._play_speed}\u00d7" if on and self._play_speed > 1 else ""
+            b.setText(self.PLAY_TXT[key] + sp)
+            b.setStyleSheet("color: #ffb000; font-weight: bold;" if on else "")
+
+    def _play_start(self, d, speed):
+        self._play_dir, self._play_speed = d, speed
+        self._play_show()
+        self._timer.start(0)
+
+    def _play_stop(self):
+        if not self._play_dir:
+            return
+        self._play_dir, self._play_speed = 0, 1
+        self._timer.stop()
+        self._play_show()
 
     def _tick(self):
-        lo, hi = self._range()
-        if self.idx >= hi:
-            if self.cb_loop.isChecked():
-                self._goto(lo)
-            else:
-                self._play_pause()
+        if not self._play_dir or self.a is None:
             return
-        self._goto(self.idx + 1)
+        t0 = time.perf_counter()
+        lo, hi = self._range()
+        nxt = self.idx + self._play_dir * self._play_speed
+        if not (lo <= nxt <= hi):
+            end, start = (hi, lo) if self._play_dir > 0 else (lo, hi)
+            if self.cb_loop.isChecked() and hi > lo:
+                nxt = start
+            else:
+                self._goto(end)
+                self._play_stop()
+                return
+        self._goto(nxt)
+        wait = 1000.0 / max(1.0, self.a.fps) - (time.perf_counter() - t0) * 1000.0
+        self._timer.start(max(0, int(wait)))
 
     def _browse_out(self):
         p = QFileDialog.getExistingDirectory(self, "Output folder",
@@ -721,8 +859,7 @@ class Main(QMainWindow):
         if self.a is None or self.b is None:
             QMessageBox.information(self, "compareQt", "Two sources are needed.")
             return
-        if self._timer.isActive():
-            self._play_pause()
+        self._play_stop()
         codec = self.cb_codec.currentData()
         height_key = self.cb_height.currentData()
         ext, flt, what = {
@@ -749,6 +886,9 @@ class Main(QMainWindow):
             if codec == "png":
                 writer = SeqOut(out, w, h, self.a.fps,
                                 status=self.status.showMessage)
+            elif codec == "mp4" and cineio.tool("ffmpeg"):
+                writer = FFmpegOut(out, w, h, self.a.fps,
+                                   status=self.status.showMessage)
             else:
                 writer = VideoOut(out, w, h, self.a.fps,
                                   status=self.status.showMessage, kind=codec)
@@ -803,8 +943,10 @@ class Main(QMainWindow):
         else:
             ver = f", read back: {writer.verified} frames" \
                 if getattr(writer, "verified", None) else ""
+            warn = "  -- ffmpeg not found: mp4v, NOT playable in browsers" \
+                if codec == "mp4" and isinstance(writer, VideoOut) else ""
             self.status.showMessage(f"done -> {out}  ({writer.n} frames, {dt:.1f}s, "
-                                    f"{writer.how}{ver})")
+                                    f"{writer.how}{ver}){warn}")
 
     def _load_settings(self):
         try:
@@ -853,6 +995,7 @@ class Main(QMainWindow):
 
     def closeEvent(self, ev):
         self._cancel = True
+        self._play_stop()
         self._save_settings()
         for src in (self.a, self.b):
             if src is not None:
@@ -886,9 +1029,6 @@ def _apply_dark(app):
         QListView::item:selected, QTreeView::item:selected { background: #4e84be; }
         QGroupBox { border: 1px solid #3a3a3e; border-radius: 4px; margin-top: 8px; }
         QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 3px; color: #8a9099; }
-        /* Fusion malt Kaestchen und Radiopunkte im Fensterhintergrund --
-           auf dunklem Grund bleibt nur der Haken. Rand hell, angekreuzt in
-           der Akzentfarbe, damit man den Zustand ohne Suchen sieht. */
         QCheckBox::indicator, QRadioButton::indicator {
             width: 14px; height: 14px; border: 1px solid #8a9099; background: #161618; }
         QCheckBox::indicator { border-radius: 3px; }
