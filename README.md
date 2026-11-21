@@ -40,6 +40,8 @@ tested on:
 + Agfa/Kodak/Fuji and other reversal film scans
 + Negative film scans (Orwo 54 developed in Rodinal)
 
+cineFlow is one of the cineTools, next to [cineColor](https://github.com/cpixip/cineColor) and [cineAlign](https://github.com/cpixip/cineAlign).
+
 ## The two programs
 
 Restoration alternates between two very different activities: working
