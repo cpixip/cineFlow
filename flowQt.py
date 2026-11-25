@@ -2629,7 +2629,7 @@ class Main(QMainWindow):
         lE = _compact(QVBoxLayout(gE), spacing=4)
 
         self._p_amount = self._mk_param(
-            "sharp_amount", "amount (0=off)", 0.0, 12.0, 0.25, 2,
+            "sharp_amount", "amount (0=off)", 0.0, 20.0, 0.25, 2,
             tip="Master control for the whole enhancement stage. 0 = off\n"
                 "(skipped entirely). Above 0 it sets the overall sharpening\n"
                 "level; where and how strongly the stage acts is set by the\n"
